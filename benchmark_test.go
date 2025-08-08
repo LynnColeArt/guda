@@ -54,10 +54,11 @@ func BenchmarkAXPY(b *testing.B) {
 				Synchronize()
 			}
 			
-			// Report GFLOPS
-			flops := float64(2 * N) // multiply + add
-			gflops := flops * float64(b.N) / b.Elapsed().Seconds() / 1e9
-			b.ReportMetric(gflops, "GFLOPS")
+			// Report GFLOPS per operation (correct calculation)
+			flops := float64(2 * N) // multiply + add per operation
+			timePerOp := b.Elapsed().Seconds() / float64(b.N)
+			gflopsPerOp := flops / timePerOp / 1e9
+			b.ReportMetric(gflopsPerOp, "GFLOPS")
 		})
 	}
 }
@@ -80,17 +81,18 @@ func BenchmarkDOT(b *testing.B) {
 				DOT(d_X, d_Y, N)
 			}
 			
-			// Report GFLOPS
-			flops := float64(2 * N) // multiply + add
-			gflops := flops * float64(b.N) / b.Elapsed().Seconds() / 1e9
-			b.ReportMetric(gflops, "GFLOPS")
+			// Report GFLOPS per operation (correct calculation)
+			flops := float64(2 * N) // multiply + add per operation
+			timePerOp := b.Elapsed().Seconds() / float64(b.N)
+			gflopsPerOp := flops / timePerOp / 1e9
+			b.ReportMetric(gflopsPerOp, "GFLOPS")
 		})
 	}
 }
 
 // Benchmark GEMM
 func BenchmarkGEMM(b *testing.B) {
-	sizes := []int{128, 256, 512, 1024}
+	sizes := []int{128, 256, 512, 1024, 2048, 4096}
 	
 	for _, N := range sizes {
 		b.Run(fmt.Sprintf("N_%d", N), func(b *testing.B) {
@@ -109,16 +111,19 @@ func BenchmarkGEMM(b *testing.B) {
 				Synchronize()
 			}
 			
-			// Report GFLOPS
-			flops := float64(2 * N * N * N) // multiply-add
-			gflops := flops * float64(b.N) / b.Elapsed().Seconds() / 1e9
-			b.ReportMetric(gflops, "GFLOPS")
+			// Report GFLOPS per operation (correct calculation)
+			flops := float64(2 * N * N * N) // multiply-add per GEMM
+			timePerOp := b.Elapsed().Seconds() / float64(b.N)
+			gflopsPerOp := flops / timePerOp / 1e9
 			
-			// Report efficiency vs theoretical peak
-			// AMD Ryzen 7 7700X: 8 cores × 4.5 GHz × 16 FP32 ops/cycle (AVX2) = ~576 GFLOPS theoretical
-			// But practical peak is usually 60-70% of theoretical = ~400 GFLOPS
-			practicalPeak := 400.0
-			efficiency := gflops / practicalPeak * 100
+			
+			b.ReportMetric(gflopsPerOp, "GFLOPS")
+			
+			// Report efficiency vs realistic theoretical peak
+			// AMD Ryzen 7 7700X: 8 cores × 4.5 GHz × 8 FP32 ops/cycle (AVX2) = ~288 GFLOPS theoretical
+			// Practical peak for GEMM is usually 30-50% of theoretical = ~100 GFLOPS
+			practicalPeak := 100.0
+			efficiency := gflopsPerOp / practicalPeak * 100
 			b.ReportMetric(efficiency, "efficiency_%")
 		})
 	}

@@ -1,8 +1,10 @@
 # 🧀 GUDA: A High-Performance CPU-Based CUDA-Compatible Linear Algebra Library
 
+**[📚 Read the Full Manual](docs/manual/)** | **[🚀 Quick Start Guide](docs/manual/01-installation.md)** | **[🏗️ Architecture Overview](docs/manual/02-architecture.md)**
+
 ## Abstract
 
-We present GUDA (Go Unified Device Architecture), a novel implementation of CUDA-compatible APIs designed for CPU execution. This library provides a seamless transition path for GPU-accelerated applications to run on CPU infrastructure while maintaining API compatibility and achieving competitive performance through aggressive SIMD optimization. Our implementation demonstrates that careful architectural design and modern CPU vectorization techniques can bridge the gap between GPU and CPU computing paradigms, achieving up to 70 GFLOPS on contemporary x86-64 processors for key operations such as matrix multiplication and convolution.
+We present GUDA (Go Unified Device Architecture), a novel implementation of CUDA-compatible APIs designed for CPU execution. Rather than simulating GPU hardware, GUDA provides a unified memory architecture and maps CUDA operations to highly optimized native CPU implementations. This library enables seamless deployment of CUDA applications on CPU-only infrastructure through aggressive SIMD optimization, native BLAS integration, and elimination of host-device memory transfers. Our implementation demonstrates that CPU-native approaches can provide a practical alternative for running CUDA applications where GPU hardware is unavailable.
 
 ## 1. Introduction
 
@@ -133,26 +135,37 @@ graph TB
     class CPU hwLayer
 ```
 
-### 3.2 Memory Management
+### 3.2 Unified Memory Architecture
 
-GUDA implements a unified memory model where "device" and "host" memory are views of the same underlying allocations:
+GUDA fundamentally differs from traditional GPU computing by implementing a **unified memory model** where all memory is CPU RAM:
 
 ```go
-type Memory struct {
+type DevicePtr struct {
     ptr    unsafe.Pointer
     size   int
-    device int
+    offset int
 }
 ```
 
-Memory transfers (cudaMemcpy) become no-ops or simple memory copies, eliminating PCIe transfer overhead.
+Key architectural decisions:
+- **No Separate Device Memory**: `cudaMalloc` allocates regular CPU RAM, not GPU memory
+- **Zero-Copy Operations**: `cudaMemcpy` operations are no-ops or simple `copy()` calls  
+- **Memory Pool Management**: Efficient allocation/deallocation with free list reuse
+- **Type-Safe Access**: DevicePtr provides `.Float32()`, `.Int32()`, `.Byte()` views of the same memory
 
-### 3.3 Kernel Execution Model
+This eliminates PCIe transfer overhead entirely and enables direct CPU access to all data.
 
-GPU kernels are transformed into CPU implementations using:
-1. **Loop Parallelization**: Thread blocks become parallel loops
-2. **SIMD Vectorization**: Warp-level parallelism maps to SIMD instructions
-3. **Work Distribution**: Dynamic scheduling across CPU cores
+### 3.3 CPU-Native Execution Model
+
+Rather than simulating GPU threads, GUDA maps CUDA execution patterns to CPU-native optimizations:
+
+1. **Native BLAS Integration**: GEMM and BLAS operations call highly optimized CPU libraries (assimilated Gonum)
+2. **SIMD-First Design**: GPU warps (32 threads) map to AVX2 vectors (8 float32 operations)  
+3. **Thread Block → Goroutine**: Grid/block structures become parallel goroutine work distribution
+4. **Cache-Aware Scheduling**: Work stealing and tiling optimize for CPU cache hierarchy
+5. **Assembly Kernels**: Hand-optimized AVX2/FMA assembly for critical mathematical operations
+
+**Key Insight**: GUDA is NOT a GPU simulator - it's a CPU-optimized implementation providing CUDA API compatibility.
 
 ```mermaid
 graph LR
@@ -210,39 +223,47 @@ graph LR
     style SIMD2 fill:#ffccbc
 ```
 
-### 3.4 BLAS Implementation
+### 3.4 High-Performance BLAS Implementation
 
-Our cuBLAS implementation leverages:
-- **Tiled Algorithms**: Cache-friendly blocking for matrix operations
-- **SIMD Kernels**: Hand-optimized assembly for critical paths
-- **Threading**: OpenMP-style parallelization across cores
+GUDA's cuBLAS compatibility layer leverages the fully assimilated Gonum mathematical computing library:
 
-Key optimizations include:
-- 8x8 register blocking for SGEMM
-- Prefetching strategies for different cache levels
-- FMA (Fused Multiply-Add) instruction utilization
+**Architecture**:
+- **Native CPU BLAS**: Direct calls to optimized CPU BLAS routines, not GPU simulation
+- **SIMD Assembly Kernels**: Hand-written AVX2/FMA assembly for common matrix sizes (4x4, 8x8, 16x16)
+- **Parallel Execution**: Goroutine-based work distribution across all CPU cores
+- **Memory Hierarchy Optimization**: L1/L2/L3 cache-aware algorithms with prefetching
 
-## 4. Performance Evaluation
+**Performance Features**:
+- **Fused Operations**: GEMM+Bias+ReLU and other fused kernels in single operations
+- **Float16 Hardware Acceleration**: F16C instruction support for half-precision
+- **Adaptive Algorithms**: Different implementations chosen based on matrix size and cache characteristics
+- **Zero Memory Copy**: Unified memory eliminates host-device transfer overhead
+
+Performance benchmarks are currently being validated and will be published in future releases.
+
+## 4. Performance Characteristics
 
 ### 4.1 Experimental Setup
 
-Testing performed on:
-- CPU: AMD Ryzen 9 7950X (16 cores, 32 threads)
-- Memory: 64GB DDR5-5600
+Testing environment:
+- CPU: AMD Ryzen 7 7700X (8 cores, 16 threads) 
+- Memory: 32GB DDR5-5600
+- Architecture: x86-64 with AVX2 support
 - Compiler: Go 1.21 with CGO for SIMD intrinsics
-- Comparison: cuBLAS on NVIDIA RTX 4090
 
-### 4.2 BLAS Performance
+**Platform Support**: This proof-of-concept currently supports **x86-64 only**. ARM64 and other architectures are not yet implemented.
 
-| Operation | Size | GUDA (GFLOPS) | cuBLAS (GFLOPS) | Efficiency |
-|-----------|------|---------------|-----------------|------------|
-| SGEMM | 512×512 | 45.2 | 892.3 | 5.1% |
-| SGEMM | 1024×1024 | 62.8 | 1823.7 | 3.4% |
-| SGEMM | 2048×2048 | 70.1 | 2145.2 | 3.3% |
-| SAXPY | 1M elements | 38.4 | 145.2 | 26.4% |
-| SDOT | 1M elements | 42.1 | 132.8 | 31.7% |
+### 4.2 Performance Considerations
 
-### 4.3 Convolution Performance
+GUDA leverages several optimization strategies:
+- **Cache Locality**: Small matrices benefit from L1/L2 cache residence
+- **SIMD Vectorization**: AVX2 instructions process 8 float32 values simultaneously
+- **Parallel Execution**: Work distribution across all available CPU cores
+- **Memory Bandwidth**: Unified memory eliminates device transfer overhead
+
+Comprehensive performance benchmarks are currently undergoing validation and will be published in upcoming releases.
+
+### 4.3 Convolution Implementation
 
 Our convolution implementation uses the im2col + GEMM approach:
 
@@ -272,26 +293,76 @@ graph LR
     RESHAPE --> GEMM
     GEMM --> OUT
     
-    style IMG fill:#e8f5e9
-    style KERNEL fill:#e8f5e9
-    style GEMM fill:#ffccbc
-    style OUT fill:#e3f2fd
+    %% High contrast styling for accessibility
+    classDef inputData fill:#2E86AB,stroke:#ffffff,stroke-width:3px,color:#ffffff
+    classDef transform fill:#A23B72,stroke:#ffffff,stroke-width:2px,color:#ffffff
+    classDef compute fill:#C73E1D,stroke:#ffffff,stroke-width:3px,color:#ffffff
+    classDef output fill:#F18F01,stroke:#ffffff,stroke-width:3px,color:#ffffff
+    
+    class IMG,KERNEL inputData
+    class IM2COL,RESHAPE transform
+    class GEMM compute
+    class OUT output
 ```
-
-| Configuration | GUDA (GFLOPS) | cuDNN (GFLOPS) | Efficiency |
-|--------------|---------------|----------------|------------|
-| 3×3, 64 channels | 52.3 | 1234.5 | 4.2% |
-| 5×5, 128 channels | 48.7 | 1456.2 | 3.3% |
-| 7×7, 256 channels | 44.2 | 1523.8 | 2.9% |
 
 ### 4.4 Numerical Accuracy
 
-Extensive validation shows:
-- Maximum ULP error: 6 for complex operations
-- Typical ULP error: 1-2 for basic operations
+Validation testing indicates:
+- IEEE 754 compliance for floating-point operations
 - Bit-exact results for memory operations
+- Numerical parity with reference implementations for core operations
 
 ## 5. Use Cases and Applications
+
+```mermaid
+graph TB
+    subgraph "Development Environment"
+        DEV_LAPTOP[Developer Laptop<br/>No GPU Required]
+        CI_PIPELINE[CI/CD Pipeline<br/>GitHub Actions]
+        DEBUG[CPU Debugging Tools<br/>GDB, Valgrind, perf]
+    end
+    
+    subgraph "Production Deployment"
+        CLOUD[Cloud CPU Instance<br/>Cost-Optimized]
+        EDGE[Edge Device<br/>ARM/x86 CPUs]
+        CONTAINER[Container Platform<br/>Docker/Kubernetes]
+    end
+    
+    subgraph "Research & Education"
+        EDUCATION[CUDA Learning<br/>Academic Environment]
+        PROTOTYPE[Algorithm Prototyping<br/>Rapid Iteration]
+        ANALYSIS[Performance Analysis<br/>CPU vs GPU Studies]
+    end
+    
+    subgraph "Application Types"
+        INFERENCE[ML Inference<br/>Low-Latency]
+        SIMULATION[Scientific Computing<br/>Batch Processing]
+        TRAINING[Small Model Training<br/>Development Phase]
+    end
+    
+    DEV_LAPTOP --> CLOUD
+    CI_PIPELINE --> CONTAINER
+    DEBUG --> ANALYSIS
+    
+    CLOUD --> INFERENCE
+    EDGE --> INFERENCE
+    CONTAINER --> SIMULATION
+    
+    EDUCATION --> PROTOTYPE
+    PROTOTYPE --> TRAINING
+    ANALYSIS --> SIMULATION
+    
+    %% High contrast deployment styling
+    classDef devEnv fill:#2E7D32,stroke:#ffffff,stroke-width:3px,color:#ffffff
+    classDef prodDeploy fill:#1565C0,stroke:#ffffff,stroke-width:3px,color:#ffffff
+    classDef research fill:#7B1FA2,stroke:#ffffff,stroke-width:3px,color:#ffffff
+    classDef appTypes fill:#D84315,stroke:#ffffff,stroke-width:3px,color:#ffffff
+    
+    class DEV_LAPTOP,CI_PIPELINE,DEBUG devEnv
+    class CLOUD,EDGE,CONTAINER prodDeploy
+    class EDUCATION,PROTOTYPE,ANALYSIS research
+    class INFERENCE,SIMULATION,TRAINING appTypes
+```
 
 ### 5.1 Development and Testing
 
@@ -318,26 +389,36 @@ Provides:
 
 ### 6.1 Current Limitations
 
-- Performance gap with GPUs (typically 3-5% efficiency)
-- Limited to CUDA runtime and cuBLAS APIs
-- No support for advanced GPU features (tensor cores, etc.)
+- **Platform Support**: x86-64 only - ARM64, RISC-V, and other architectures not yet supported
+- **API Coverage**: Limited to CUDA runtime and cuBLAS APIs
+- **SIMD Requirements**: Requires AVX2 for optimal performance; fallback implementations may be slower
+- **No GPU Hardware Features**: No support for advanced GPU features (tensor cores, RT cores, etc.)
 
 ### 6.2 Future Directions
 
-1. **API Coverage**: Implement cuDNN, cuFFT, and other libraries
-2. **Performance**: AVX-512 optimizations, better cache utilization
-3. **Heterogeneous Execution**: CPU+GPU cooperative processing
-4. **Additional Backends**: Support for ARM SVE, RISC-V vectors
+1. **Multi-Architecture Support**: ARM64 with NEON/SVE, RISC-V with vector extensions
+2. **API Coverage**: Implement cuDNN, cuFFT, cuSPARSE, and other CUDA libraries  
+3. **Advanced SIMD**: AVX-512 optimizations for Intel processors
+4. **Heterogeneous Execution**: CPU+GPU cooperative processing for hybrid workloads
 
 ## 7. Conclusion
 
-GUDA demonstrates that CPU implementations of GPU APIs can provide practical performance while enabling new deployment scenarios. While not replacing GPUs for peak performance, GUDA offers a valuable tool for development, testing, and CPU deployment of CUDA applications. The achieved performance of up to 70 GFLOPS on matrix multiplication validates the approach and suggests further optimizations could narrow the CPU-GPU performance gap.
+GUDA demonstrates that CPU-native implementations of GPU APIs can provide practical deployment options for CUDA applications on CPU-only infrastructure. Through unified memory architecture, optimized BLAS integration, and elimination of host-device transfers, GUDA enables running CUDA applications where GPU hardware is unavailable or cost-prohibitive. This proof-of-concept validates the viability of CPU-first architectural approaches for CUDA compatibility and suggests future opportunities for heterogeneous computing strategies.
 
 ## Installation
 
+### System Requirements
+- **Architecture**: x86-64 processor with AVX2 support (Intel Haswell/AMD Excavator or newer)
+- **OS**: Linux, macOS, or Windows
+- **Go**: Version 1.19 or later
+- **CGO**: Required for SIMD assembly optimizations
+
+### Install
 ```bash
 go get github.com/LynnColeArt/guda
 ```
+
+**Note**: ARM64 and other architectures are not currently supported in this proof-of-concept.
 
 ## Usage Example
 
@@ -376,10 +457,10 @@ MIT License - See LICENSE file for details
 
 If you use GUDA in your research, please cite:
 ```bibtex
-@software{guda2024,
+@software{guda2025,
   author = {Lynn Cole},
   title = {GUDA: A High-Performance CPU-Based CUDA-Compatible Linear Algebra Library},
-  year = {2024},
+  year = {2025},
   url = {https://github.com/LynnColeArt/guda}
 }
 ```
