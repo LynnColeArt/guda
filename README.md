@@ -119,13 +119,18 @@ graph TB
     FUSED --> CPU
     CACHE --> CPU
     
-    style APP fill:#e1f5e1
-    style RT fill:#c8e6c9
-    style BLAS fill:#c8e6c9
-    style KERNEL fill:#c8e6c9
-    style SIMD fill:#ffccbc
-    style FUSED fill:#ffccbc
-    style CPU fill:#b0bec5
+    %% High contrast styling for accessibility
+    classDef appLayer fill:#2E86AB,stroke:#ffffff,stroke-width:3px,color:#ffffff
+    classDef apiLayer fill:#A23B72,stroke:#ffffff,stroke-width:2px,color:#ffffff
+    classDef execLayer fill:#F18F01,stroke:#ffffff,stroke-width:2px,color:#ffffff
+    classDef optLayer fill:#C73E1D,stroke:#ffffff,stroke-width:2px,color:#ffffff
+    classDef hwLayer fill:#1B1B1B,stroke:#ffffff,stroke-width:3px,color:#ffffff
+    
+    class APP appLayer
+    class RT,BLAS,KERNEL apiLayer
+    class MEM,EXEC,STREAM execLayer
+    class SIMD,FUSED,CACHE optLayer
+    class CPU hwLayer
 ```
 
 ### 3.2 Memory Management
@@ -181,6 +186,23 @@ graph LR
     
     BLOCK1 -.->|"maps to"| LOOP
     THREAD1 -.->|"maps to"| SIMD1
+    
+    %% High contrast GPU styling
+    classDef gpuGrid fill:#76B900,stroke:#ffffff,stroke-width:3px,color:#ffffff
+    classDef gpuBlock fill:#4CAF50,stroke:#ffffff,stroke-width:2px,color:#ffffff
+    classDef gpuThread fill:#2E7D32,stroke:#ffffff,stroke-width:2px,color:#ffffff
+    
+    %% High contrast CPU styling  
+    classDef cpuCore fill:#FF6B35,stroke:#ffffff,stroke-width:3px,color:#ffffff
+    classDef cpuLoop fill:#E65100,stroke:#ffffff,stroke-width:2px,color:#ffffff
+    classDef cpuSIMD fill:#BF360C,stroke:#ffffff,stroke-width:2px,color:#ffffff
+    
+    class GRID gpuGrid
+    class BLOCK1,BLOCK2,BLOCK3 gpuBlock
+    class THREAD1,THREAD2,THREAD3 gpuThread
+    class CORES cpuCore
+    class LOOP cpuLoop
+    class SIMD1,SIMD2 cpuSIMD
     
     style GRID fill:#e3f2fd
     style CORES fill:#fff3e0

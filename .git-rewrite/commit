@@ -1,0 +1,6 @@
+tree 2816688ddaf27b11eb830c61fd4907de9ac8a56c
+parent 77ef00e10188afccbdfa9a569d3672a927317ec0
+author kortschak <dan.kortschak@adelaide.edu.au> 1397088107 +0930
+committer kortschak <dan.kortschak@adelaide.edu.au> 1397088107 +0930
+
+Simplify interface parameters
