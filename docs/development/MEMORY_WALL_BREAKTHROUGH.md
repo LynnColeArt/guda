@@ -23,9 +23,9 @@ Given `seq_len = 512` and `d_model = 768`:
 
 By fusing operations and employing aggressive tiling, memory traffic can be reduced to approximately:
 
-$$
+```
 1.5 \times \text{seq\_len} \times \text{d\_model} \times 4 \ \text{bytes}
-$$
+```
 
 In the above example, this results in \~2.4 MB per layer (\~24 μs transfer time), yielding an estimated 4× performance improvement from memory efficiency alone.
 
