@@ -1,0 +1,59 @@
+# Binaries for programs and plugins
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Test binary, built with `go test -c`
+*.test
+
+# Output of the go coverage tool, specifically when used with LiteIDE
+*.out
+
+# Dependency directories (remove the comment below to include it)
+# vendor/
+
+# Go workspace file
+go.work
+
+# IDE specific files
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS specific files
+.DS_Store
+Thumbs.db
+
+# Project specific excludes
+cuda-analysis/
+
+# HTML files (except test data)
+*.html
+*.htm
+!graph/formats/rdf/testdata/*.html
+
+# Benchmark and profiling outputs
+*.prof
+*.pprof
+*.bench
+
+# Binary outputs
+guda
+main
+
+# Test outputs
+test_vectors/
+cpu_test_vectors/
+
+# Temporary files
+*.tmp
+*.temp
+*.log
+
+# Build artifacts
+dist/
+build/
