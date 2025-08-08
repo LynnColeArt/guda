@@ -80,7 +80,7 @@ func (ctx *Context) Memcpy(dst, src interface{}, size int, kind MemcpyKind) erro
 			dstPtr = unsafe.Pointer(&d[0])
 		}
 	default:
-		return fmt.Errorf("unsupported dst type: %T", dst)
+		return NewInvalidArgError("Memcpy", fmt.Sprintf("unsupported dst type: %T", dst))
 	}
 	
 	// Handle src
@@ -106,7 +106,7 @@ func (ctx *Context) Memcpy(dst, src interface{}, size int, kind MemcpyKind) erro
 			srcPtr = unsafe.Pointer(&s[0])
 		}
 	default:
-		return fmt.Errorf("unsupported src type: %T", src)
+		return NewInvalidArgError("Memcpy", fmt.Sprintf("unsupported src type: %T", src))
 	}
 	
 	// Perform the copy
@@ -184,11 +184,11 @@ func (mp *MemoryPool) Free(ptr DevicePtr) error {
 	allocPtr := uintptr(ptr.ptr)
 	alloc, ok := mp.allocated[allocPtr]
 	if !ok {
-		return fmt.Errorf("pointer not found in allocation pool")
+		return NewMemoryError("Free", "pointer not found in allocation pool", nil)
 	}
 	
 	if !alloc.used {
-		return fmt.Errorf("double free detected")
+		return ErrDoubleFree
 	}
 	
 	// Mark as free and add to free list
@@ -208,7 +208,14 @@ func (mp *MemoryPool) GetStats() (allocated, peak int64) {
 
 // DevicePtr methods for convenience
 
-// Float32 returns a float32 slice view of the memory
+// Float32 returns a float32 slice view of the device memory.
+// The slice can be used directly for reading and writing data.
+// Panics if the memory size is not aligned to float32 boundaries.
+//
+// Example:
+//   d_data, _ := guda.Malloc(1024 * 4) // Allocate for 1024 float32s
+//   data := d_data.Float32()
+//   data[0] = 3.14 // Direct access
 func (d DevicePtr) Float32() []float32 {
 	if d.ptr == nil {
 		return nil
@@ -216,7 +223,14 @@ func (d DevicePtr) Float32() []float32 {
 	return (*[1 << 28]float32)(d.ptr)[:d.size/4:d.size/4]
 }
 
-// Float64 returns a float64 slice view of the memory
+// Float64 returns a float64 slice view of the device memory.
+// The slice can be used directly for reading and writing data.
+// Panics if the memory size is not aligned to float64 boundaries.
+//
+// Example:
+//   d_data, _ := guda.Malloc(1024 * 8) // Allocate for 1024 float64s
+//   data := d_data.Float64()
+//   data[0] = 3.14159 // Direct access
 func (d DevicePtr) Float64() []float64 {
 	if d.ptr == nil {
 		return nil
@@ -224,7 +238,14 @@ func (d DevicePtr) Float64() []float64 {
 	return (*[1 << 27]float64)(d.ptr)[:d.size/8:d.size/8]
 }
 
-// Int32 returns an int32 slice view of the memory
+// Int32 returns an int32 slice view of the device memory.
+// The slice can be used directly for reading and writing data.
+// Panics if the memory size is not aligned to int32 boundaries.
+//
+// Example:
+//   d_indices, _ := guda.Malloc(1024 * 4) // Allocate for 1024 int32s
+//   indices := d_indices.Int32()
+//   indices[0] = 42 // Direct access
 func (d DevicePtr) Int32() []int32 {
 	if d.ptr == nil {
 		return nil
@@ -232,7 +253,14 @@ func (d DevicePtr) Int32() []int32 {
 	return (*[1 << 28]int32)(d.ptr)[:d.size/4:d.size/4]
 }
 
-// Byte returns a byte slice view of the memory
+// Byte returns a byte slice view of the device memory.
+// The slice covers the entire allocated memory region.
+// Useful for raw memory operations or interfacing with I/O.
+//
+// Example:
+//   d_buffer, _ := guda.Malloc(4096)
+//   bytes := d_buffer.Byte()
+//   copy(bytes, sourceData) // Copy raw bytes
 func (d DevicePtr) Byte() []byte {
 	if d.ptr == nil {
 		return nil
@@ -240,7 +268,14 @@ func (d DevicePtr) Byte() []byte {
 	return (*[1 << 30]byte)(d.ptr)[:d.size:d.size]
 }
 
-// Offset returns a new DevicePtr offset by the given number of bytes
+// Offset returns a new DevicePtr offset by the given number of bytes.
+// Useful for accessing sub-regions of allocated memory.
+// The returned DevicePtr shares the same underlying memory.
+//
+// Example:
+//   d_array, _ := guda.Malloc(1024 * 4) // 1024 float32s
+//   d_second_half := d_array.Offset(512 * 4) // Start at element 512
+//   data := d_second_half.Float32() // Access second half
 func (d DevicePtr) Offset(bytes int) DevicePtr {
 	return DevicePtr{
 		ptr:    unsafe.Pointer(uintptr(d.ptr) + uintptr(bytes)),

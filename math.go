@@ -20,7 +20,22 @@ const (
 
 // BLAS operations using optimized gonum kernels
 
-// AXPY performs y = alpha*x + y
+// AXPY performs the BLAS Level 1 operation: y = alpha*x + y.
+// This function adds a scaled vector x to vector y.
+//
+// Parameters:
+//   - alpha: Scalar multiplier for x
+//   - x: Input vector (DevicePtr to float32 data)
+//   - y: Input/output vector (DevicePtr to float32 data)
+//   - n: Number of elements in vectors
+//
+// The operation is performed in-place on vector y.
+// Uses optimized SIMD operations for maximum performance.
+//
+// Example:
+//   d_x, _ := guda.Malloc(1024 * 4)
+//   d_y, _ := guda.Malloc(1024 * 4)
+//   err := guda.AXPY(2.0, d_x, d_y, 1024) // y = 2.0*x + y
 func AXPY(alpha float32, x, y DevicePtr, n int) error {
 	xf32 := x.Float32()[:n]
 	yf32 := y.Float32()[:n]
@@ -31,7 +46,21 @@ func AXPY(alpha float32, x, y DevicePtr, n int) error {
 	return nil
 }
 
-// DOT computes the dot product of two vectors
+// DOT computes the dot product of two vectors: result = sum(x[i] * y[i]).
+// This is a BLAS Level 1 operation.
+//
+// Parameters:
+//   - x: First input vector (DevicePtr to float32 data)
+//   - y: Second input vector (DevicePtr to float32 data)
+//   - n: Number of elements in vectors
+//
+// Returns the dot product as float32.
+// Uses optimized SIMD operations for maximum performance.
+//
+// Example:
+//   d_x, _ := guda.Malloc(1024 * 4)
+//   d_y, _ := guda.Malloc(1024 * 4)
+//   result, err := guda.DOT(d_x, d_y, 1024)
 func DOT(x, y DevicePtr, n int) (float32, error) {
 	xf32 := x.Float32()[:n]
 	yf32 := y.Float32()[:n]
@@ -41,7 +70,31 @@ func DOT(x, y DevicePtr, n int) (float32, error) {
 	return result, nil
 }
 
-// GEMM performs C = alpha*A*B + beta*C
+// GEMM performs the general matrix-matrix multiplication: C = alpha*op(A)*op(B) + beta*C.
+// This is a BLAS Level 3 operation and the workhorse of linear algebra.
+//
+// Parameters:
+//   - transA: If true, use A^T; if false, use A
+//   - transB: If true, use B^T; if false, use B  
+//   - m: Number of rows in op(A) and C
+//   - n: Number of columns in op(B) and C
+//   - k: Number of columns in op(A) and rows in op(B)
+//   - alpha: Scalar multiplier for A*B
+//   - a: Matrix A (DevicePtr to float32 data)
+//   - lda: Leading dimension of A
+//   - b: Matrix B (DevicePtr to float32 data)
+//   - ldb: Leading dimension of B
+//   - beta: Scalar multiplier for C
+//   - c: Matrix C (DevicePtr to float32 data, input/output)
+//   - ldc: Leading dimension of C
+//
+// Uses highly optimized CPU BLAS with SIMD operations.
+//
+// Example:
+//   d_A, _ := guda.Malloc(m * k * 4)
+//   d_B, _ := guda.Malloc(k * n * 4)
+//   d_C, _ := guda.Malloc(m * n * 4)
+//   err := guda.GEMM(false, false, m, n, k, 1.0, d_A, k, d_B, n, 0.0, d_C, n)
 func GEMM(transA, transB bool, m, n, k int, alpha float32,
 	a DevicePtr, lda int,
 	b DevicePtr, ldb int,
