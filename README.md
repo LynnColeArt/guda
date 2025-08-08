@@ -152,13 +152,13 @@ GPU kernels are transformed into CPU implementations using:
 ```mermaid
 graph LR
     subgraph "GPU Model"
-        GRID[Grid<br/>dim3{4,2,1}]
-        BLOCK1[Block{0,0}]
-        BLOCK2[Block{1,0}]
-        BLOCK3[Block{...}]
-        THREAD1[Thread{0}]
-        THREAD2[Thread{1}]
-        THREAD3[Thread{...}]
+        GRID["Grid<br/>dim3(4,2,1)"]
+        BLOCK1["Block(0,0)"]
+        BLOCK2["Block(1,0)"]
+        BLOCK3["Block(...)"]
+        THREAD1["Thread(0)"]
+        THREAD2["Thread(1)"]
+        THREAD3["Thread(...)"]
         
         GRID --> BLOCK1
         GRID --> BLOCK2
@@ -169,10 +169,10 @@ graph LR
     end
     
     subgraph "GUDA CPU Mapping"
-        CORES[CPU Cores<br/>8 cores]
-        LOOP[Parallel Loops<br/>OpenMP-style]
-        SIMD1[SIMD Lane 0-7<br/>AVX2 256-bit]
-        SIMD2[SIMD Lane 8-15<br/>AVX2 256-bit]
+        CORES["CPU Cores<br/>8 cores"]
+        LOOP["Parallel Loops<br/>OpenMP-style"]
+        SIMD1["SIMD Lane 0-7<br/>AVX2 256-bit"]
+        SIMD2["SIMD Lane 8-15<br/>AVX2 256-bit"]
         
         CORES --> LOOP
         LOOP --> SIMD1
@@ -364,4 +364,15 @@ If you use GUDA in your research, please cite:
 
 ## Acknowledgments
 
-This work was inspired by the need for accessible high-performance computing and the convergence of CPU and GPU architectures. Special thanks to the Go community for providing excellent tools for systems programming.
+This work was inspired by the need for accessible high-performance computing and the convergence of CPU and GPU architectures.
+
+### Gonum Integration
+
+GUDA incorporates substantial portions of the Gonum project (https://github.com/gonum/gonum), a set of numeric libraries for the Go programming language. The Gonum BLAS implementation forms the foundation of GUDA's linear algebra operations. We are grateful to the Gonum authors and contributors for their excellent work in bringing high-performance numeric computing to Go. The Gonum code is used under the BSD 3-Clause License.
+
+### Additional Thanks
+
+Special thanks to:
+- The Go community for providing excellent tools for systems programming
+- The developers of CUDA and cuBLAS for establishing the programming model and APIs
+- The open-source community for fostering collaborative scientific computing
