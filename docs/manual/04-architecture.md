@@ -69,14 +69,14 @@ Unlike real CUDA with separate host/device memory, GUDA uses a unified model:
 ```mermaid
 graph LR
     subgraph "CUDA Model"
-        HOST[Host Memory<br/>malloc()]
-        DEVICE[Device Memory<br/>cudaMalloc()]
+        HOST["Host Memory<br/>malloc()"]
+        DEVICE["Device Memory<br/>cudaMalloc()"]
         
         HOST <-->|"cudaMemcpy"| DEVICE
     end
     
     subgraph "GUDA Model"
-        UNIFIED[Unified Memory<br/>Virtual Device Pointers]
+        UNIFIED["Unified Memory<br/>Virtual Device Pointers"]
         
         UNIFIED -->|"Zero Copy"| UNIFIED
     end
@@ -296,17 +296,17 @@ Let's trace what happens when you call `guda.Sgemm`:
 sequenceDiagram
     participant App as Your Code
     participant API as GUDA API
-    participant Opt as Optimizer
+    participant Optimizer as Optimizer
     participant Mem as Memory Manager
     participant Exec as Executor
     participant CPU as CPU Cores
     
     App->>+API: guda.Sgemm(A, B, C)
-    API->>+Opt: Analyze operation
-    Opt->>Opt: Select algorithm (blocked GEMM)
-    Opt->>+Mem: Validate pointers
-    Mem-->>-Opt: Memory layout info
-    Opt->>+Exec: Dispatch optimized kernel
+    API->>+Optimizer: Analyze operation
+    Optimizer->>Optimizer: Select algorithm (blocked GEMM)
+    Optimizer->>+Mem: Validate pointers
+    Mem-->>-Optimizer: Memory layout info
+    Optimizer->>+Exec: Dispatch optimized kernel
     
     Exec->>CPU: Launch goroutines (one per core)
     Exec->>CPU: Distribute work blocks
@@ -318,8 +318,8 @@ sequenceDiagram
     end
     
     CPU-->>Exec: Completion signal
-    Exec-->>-Opt: Results ready  
-    Opt-->>-API: Operation complete
+    Exec-->>-Optimizer: Results ready  
+    Optimizer-->>-API: Operation complete
     API-->>-App: C matrix updated
     
     %% Theme configuration for better contrast
