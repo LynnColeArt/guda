@@ -92,22 +92,60 @@ func init() {
 	})
 }
 
-// Malloc allocates device memory
+// Malloc allocates device memory of the specified size in bytes.
+// In GUDA, this allocates CPU memory with proper alignment for SIMD operations.
+// The returned DevicePtr can be used with all GUDA operations.
+//
+// Example:
+//   d_data, err := guda.Malloc(1024 * 4) // Allocate 1024 float32s
+//   if err != nil {
+//       log.Fatal(err)
+//   }
+//   defer guda.Free(d_data)
 func Malloc(size int) (DevicePtr, error) {
 	return defaultContext.Malloc(size)
 }
 
-// Free releases device memory
+// Free releases device memory allocated by Malloc.
+// It is safe to call Free with a zero-value DevicePtr.
+//
+// Example:
+//   d_data, _ := guda.Malloc(1024 * 4)
+//   defer guda.Free(d_data)
 func Free(ptr DevicePtr) error {
 	return defaultContext.Free(ptr)
 }
 
-// Memcpy copies memory between host and device
+// Memcpy copies memory between host and device.
+// In GUDA's unified memory model, this may be a no-op or simple copy.
+// Supports various Go slice types ([]float32, []float64, []int32, etc.).
+//
+// Parameters:
+//   - dst: Destination (DevicePtr or Go slice)
+//   - src: Source (DevicePtr or Go slice)  
+//   - size: Number of bytes to copy
+//   - kind: Transfer direction (MemcpyHostToDevice, MemcpyDeviceToHost, etc.)
+//
+// Example:
+//   hostData := make([]float32, 1024)
+//   d_data, _ := guda.Malloc(1024 * 4)
+//   err := guda.Memcpy(d_data, hostData, 1024*4, guda.MemcpyHostToDevice)
 func Memcpy(dst, src interface{}, size int, kind MemcpyKind) error {
 	return defaultContext.Memcpy(dst, src, size, kind)
 }
 
-// Launch executes a kernel
+// Launch executes a kernel on the default stream.
+// The kernel is executed across a grid of thread blocks.
+//
+// Parameters:
+//   - kernel: The kernel to execute
+//   - grid: Grid dimensions (number of blocks)
+//   - block: Block dimensions (threads per block)
+//   - args: Kernel arguments
+//
+// Example:
+//   kernel := MyKernel{}
+//   err := guda.Launch(kernel, guda.Dim3{X: 256, Y: 1, Z: 1}, guda.Dim3{X: 64, Y: 1, Z: 1})
 func Launch(kernel Kernel, grid, block Dim3, args ...interface{}) error {
 	return defaultContext.Launch(kernel, grid, block, args...)
 }
@@ -117,12 +155,22 @@ func LaunchFunc(fn KernelFunc, grid, block Dim3, args ...interface{}) error {
 	return defaultContext.LaunchFunc(fn, grid, block, args...)
 }
 
-// Synchronize waits for all operations to complete
+// Synchronize waits for all operations on all streams to complete.
+// This ensures all previously launched kernels and memory operations have finished.
+//
+// Example:
+//   guda.Launch(kernel, grid, block)
+//   err := guda.Synchronize() // Wait for kernel to complete
 func Synchronize() error {
 	return defaultContext.Synchronize()
 }
 
-// GetDevice returns the current device
+// GetDevice returns the current device information.
+// In GUDA, this always returns the CPU device.
+//
+// Example:
+//   device := guda.GetDevice()
+//   fmt.Printf("Running on: %s with %d cores\n", device.Name, device.NumCores)
 func GetDevice() *Device {
 	return defaultDevice
 }
@@ -130,12 +178,17 @@ func GetDevice() *Device {
 // SetDevice sets the active device (no-op for CPU)
 func SetDevice(id int) error {
 	if id != 0 {
-		return fmt.Errorf("only device 0 (CPU) is available")
+		return ErrInvalidDevice
 	}
 	return nil
 }
 
-// GetDeviceCount returns the number of available devices
+// GetDeviceCount returns the number of available devices.
+// GUDA always returns 1 as it only supports CPU execution.
+//
+// Example:
+//   count := guda.GetDeviceCount()
+//   fmt.Printf("Available devices: %d\n", count)
 func GetDeviceCount() int {
 	return 1 // Only CPU
 }
@@ -143,7 +196,7 @@ func GetDeviceCount() int {
 // GetDeviceProperties returns device properties
 func GetDeviceProperties(id int) (*Device, error) {
 	if id != 0 {
-		return nil, fmt.Errorf("invalid device ID: %d", id)
+		return nil, NewInvalidArgError("GetDeviceProperties", fmt.Sprintf("invalid device ID: %d", id))
 	}
 	return defaultDevice, nil
 }

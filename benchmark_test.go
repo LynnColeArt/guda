@@ -9,9 +9,9 @@ import (
 func BenchmarkMemoryBandwidth(b *testing.B) {
 	sizes := []int{
 		1 << 10,  // 1KB
-		1 << 15,  // 32KB (L1 cache)
-		1 << 18,  // 256KB (L2 cache)
-		1 << 23,  // 8MB (L3 cache)
+		L1CacheSize,  // 32KB (L1 cache)
+		L2CacheSize,  // 256KB (L2 cache)
+		L3CacheSize,  // 8MB (L3 cache)
 		1 << 26,  // 64MB (RAM)
 		1 << 28,  // 256MB (RAM)
 	}
@@ -58,7 +58,7 @@ func BenchmarkAXPY(b *testing.B) {
 			flops := float64(2 * N) // multiply + add per operation
 			timePerOp := b.Elapsed().Seconds() / float64(b.N)
 			gflopsPerOp := flops / timePerOp / 1e9
-			b.ReportMetric(gflopsPerOp, "GFLOPS")
+			b.ReportMetric(gflopsPerOp, "GFLOPS(hot-cache)")
 		})
 	}
 }
@@ -85,7 +85,7 @@ func BenchmarkDOT(b *testing.B) {
 			flops := float64(2 * N) // multiply + add per operation
 			timePerOp := b.Elapsed().Seconds() / float64(b.N)
 			gflopsPerOp := flops / timePerOp / 1e9
-			b.ReportMetric(gflopsPerOp, "GFLOPS")
+			b.ReportMetric(gflopsPerOp, "GFLOPS(hot-cache)")
 		})
 	}
 }
@@ -117,7 +117,7 @@ func BenchmarkGEMM(b *testing.B) {
 			gflopsPerOp := flops / timePerOp / 1e9
 			
 			
-			b.ReportMetric(gflopsPerOp, "GFLOPS")
+			b.ReportMetric(gflopsPerOp, "GFLOPS(hot-cache)")
 			
 			// Report efficiency vs realistic theoretical peak
 			// AMD Ryzen 7 7700X: 8 cores × 4.5 GHz × 8 FP32 ops/cycle (AVX2) = ~288 GFLOPS theoretical
@@ -143,7 +143,7 @@ func BenchmarkKernelLaunchOverhead(b *testing.B) {
 			b.ResetTimer()
 			
 			for i := 0; i < b.N; i++ {
-				Launch(kernel, Dim3{X: gridSize, Y: 1, Z: 1}, Dim3{X: 256, Y: 1, Z: 1})
+				Launch(kernel, Dim3{X: gridSize, Y: 1, Z: 1}, Dim3{X: DefaultBlockSize, Y: 1, Z: 1})
 				Synchronize()
 			}
 			
@@ -194,8 +194,8 @@ func BenchmarkFusionSpeedup(b *testing.B) {
 		
 		for i := 0; i < b.N; i++ {
 			Launch(kernel, 
-				Dim3{X: (N + 255) / 256, Y: 1, Z: 1},
-				Dim3{X: 256, Y: 1, Z: 1})
+				Dim3{X: (N + DefaultBlockSize - 1) / DefaultBlockSize, Y: 1, Z: 1},
+				Dim3{X: DefaultBlockSize, Y: 1, Z: 1})
 			Synchronize()
 		}
 	})
@@ -211,7 +211,7 @@ func BenchmarkParallelScaling(b *testing.B) {
 	defer Free(d_Y)
 	
 	// Vary the grid size to control parallelism
-	blockSize := 256
+	blockSize := DefaultBlockSize
 	maxGridSize := (N + blockSize - 1) / blockSize
 	
 	gridSizes := []int{1, 2, 4, 8, 16, 32, 64, maxGridSize}

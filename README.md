@@ -1,6 +1,6 @@
 # 🧀 GUDA: A High-Performance CPU-Based CUDA-Compatible Linear Algebra Library
 
-**[📚 Read the Full Manual](docs/manual/)** | **[🚀 Quick Start Guide](docs/manual/01-installation.md)** | **[🏗️ Architecture Overview](docs/manual/02-architecture.md)**
+**[📚 Read the Full Manual](docs/manual/)** | **[🚀 Quick Start Guide](docs/manual/02-installation.md)** | **[🏗️ Architecture Overview](docs/manual/04-architecture.md)**
 
 ## Abstract
 
