@@ -74,8 +74,10 @@ func ULPDiffFloat32(a, b float32) int32 {
 	
 	// Check if signs differ
 	if (aBits>>31) != (bBits>>31) {
-		// Signs differ, use absolute values
-		return ULPDiffFloat32(a, 0) + ULPDiffFloat32(0, b)
+		// Signs differ, calculate distance through zero
+		absA := float32(math.Abs(float64(a)))
+		absB := float32(math.Abs(float64(b)))
+		return ULPDiffFloat32(absA, 0) + ULPDiffFloat32(absB, 0)
 	}
 	
 	// Same sign, compute difference
