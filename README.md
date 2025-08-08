@@ -218,9 +218,9 @@ graph LR
     class SIMD1,SIMD2 cpuSIMD
     
     style GRID fill:#e3f2fd
-    style CORES fill:#fff3e0
-    style SIMD1 fill:#ffccbc
-    style SIMD2 fill:#ffccbc
+    style CORES fill:#000000
+    style SIMD1 fill:#000000
+    style SIMD2 fill:#000000
 ```
 
 ### 3.4 High-Performance BLAS Implementation
