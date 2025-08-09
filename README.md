@@ -43,8 +43,9 @@ The primary motivations for this work include:
 This work makes the following contributions:
 
 - A comprehensive CPU implementation of core CUDA runtime and cuBLAS APIs
-- Novel SIMD-optimized kernels achieving significant fractions of theoretical CPU peak performance
-- Extensive numerical validation framework ensuring bit-level compatibility where feasible
+- Novel SIMD-optimized kernels for both x86-64 (AVX2/AVX-512) and ARM64 (NEON) architectures
+- Architecture-aware floating-point tolerance system handling platform-specific numerical differences
+- Extensive numerical validation framework ensuring compatibility within architecture constraints
 - Performance analysis demonstrating the viability of CPU execution for GPU-designed algorithms
 
 ## 2. Background
@@ -60,8 +61,8 @@ CUDA (Compute Unified Device Architecture) provides a parallel computing platfor
 ### 2.2 CPU SIMD Architecture
 
 Modern CPUs provide SIMD (Single Instruction, Multiple Data) extensions:
-- **AVX2**: 256-bit vectors processing 8 float32 values simultaneously
-- **AVX-512**: 512-bit vectors (16 float32 values) on newer processors
+- **x86-64**: AVX2 (256-bit vectors, 8 float32 values) and AVX-512 (512-bit vectors, 16 float32 values)
+- **ARM64**: NEON (128-bit vectors, 4 float32 values) with architecture-aware floating-point tolerances
 - **Memory Bandwidth**: Increasingly important bottleneck for data-parallel algorithms
 
 ### 2.3 Related Work
@@ -114,7 +115,7 @@ graph TB
     end
     
     subgraph "Hardware"
-        CPU[CPU Cores<br/>x86-64 with AVX2]
+        CPU[CPU Cores<br/>x86-64 AVX2/AVX-512<br/>ARM64 NEON]
     end
     
     APP --> RT
