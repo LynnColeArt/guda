@@ -1,13 +1,12 @@
 ---
 name: Question
-about: Ask at the Gonum discussion list https://groups.google.com/forum/#!forum/gonum-dev
+about: Ask a question about GUDA
 
 ---
-<!--
-For question about usage or similar, please ask at the Gonum discussion list
-rather than filing an issue:
 
-https://groups.google.com/forum/#!forum/gonum-dev
--->
+### What would you like to know?
+<!-- Ask your question here! We're happy to help -->
 
-# :no_entry_sign: INVALID :no_entry_sign:
+
+### Context
+<!-- Optional: What are you trying to accomplish? -->

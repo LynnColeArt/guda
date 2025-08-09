@@ -228,26 +228,36 @@ func sgemmParallel(aTrans, bTrans bool, m, n, k int, a []float32, lda int, b []f
 					lenj = n - j
 				}
 
-				cSub := sliceView32(c, ldc, i, j, leni, lenj)
-
+				// Instead of creating a submatrix view, we'll pass the offset into the original matrix
+				// This allows sgemmSerial to correctly handle the stride
+				cOffset := i*ldc + j
+				
 				// Compute A_ik B_kj for all k
 				for k := 0; k < maxKLen; k += blockSize {
 					lenk := blockSize
 					if k+lenk > maxKLen {
 						lenk = maxKLen - k
 					}
-					var aSub, bSub []float32
+					
+					// Calculate offsets for A and B submatrices
+					var aOffset, bOffset int
 					if aTrans {
-						aSub = sliceView32(a, lda, k, i, lenk, leni)
+						aOffset = k*lda + i
 					} else {
-						aSub = sliceView32(a, lda, i, k, leni, lenk)
+						aOffset = i*lda + k
 					}
 					if bTrans {
-						bSub = sliceView32(b, ldb, j, k, lenj, lenk)
+						bOffset = j*ldb + k
 					} else {
-						bSub = sliceView32(b, ldb, k, j, lenk, lenj)
+						bOffset = k*ldb + j
 					}
-					sgemmSerial(aTrans, bTrans, leni, lenj, lenk, aSub, lda, bSub, ldb, cSub, ldc, alpha)
+					
+					// Pass the original slices with offsets
+					// sgemmSerial will handle the stride correctly
+					sgemmSerial(aTrans, bTrans, leni, lenj, lenk, 
+						a[aOffset:], lda, 
+						b[bOffset:], ldb, 
+						c[cOffset:], ldc, alpha)
 				}
 			}(i, j)
 		}
