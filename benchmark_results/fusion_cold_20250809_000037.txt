@@ -1,0 +1,8 @@
+goos: linux
+goarch: amd64
+pkg: github.com/LynnColeArt/guda
+cpu: AMD Ryzen 7 7700X 8-Core Processor             
+BenchmarkFusionSpeedup/Separate_3ops-16         	    1528	   3936157 ns/op	9590.25 MB/s
+BenchmarkFusionSpeedup/Fused_3ops-16            	    2812	   2096014 ns/op	6003.26 MB/s
+PASS
+ok  	github.com/LynnColeArt/guda	12.529s
