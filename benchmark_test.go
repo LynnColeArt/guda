@@ -47,18 +47,22 @@ func BenchmarkAXPY(b *testing.B) {
 			alpha := float32(2.5)
 			
 			b.SetBytes(int64(3 * N * 4)) // Read X, Read Y, Write Y
-			b.ResetTimer()
 			
-			for i := 0; i < b.N; i++ {
+			// Use performance counter integration
+			IntegratePerfCounters(b, fmt.Sprintf("AXPY_%d", N), func() {
 				AXPY(alpha, d_X, d_Y, N)
 				Synchronize()
-			}
+			})
 			
 			// Report GFLOPS per operation (correct calculation)
 			flops := float64(2 * N) // multiply + add per operation
 			timePerOp := b.Elapsed().Seconds() / float64(b.N)
 			gflopsPerOp := flops / timePerOp / 1e9
 			b.ReportMetric(gflopsPerOp, "GFLOPS(hot-cache)")
+			
+			// Report arithmetic intensity
+			arithmeticIntensity := flops / float64(3*N*4) // FLOPS per byte
+			b.ReportMetric(arithmeticIntensity, "FLOPS/byte")
 		})
 	}
 }
@@ -103,13 +107,17 @@ func BenchmarkGEMM(b *testing.B) {
 			defer Free(d_B)
 			defer Free(d_C)
 			
-			b.SetBytes(int64(3 * N * N * 4)) // Simplified
-			b.ResetTimer()
+			// Initialize with test data for consistent results
+			InitTestData(d_A.Float32(), 1.0)
+			InitTestData(d_B.Float32(), 1.0)
 			
-			for i := 0; i < b.N; i++ {
+			b.SetBytes(int64(3 * N * N * 4)) // Simplified
+			
+			// Use performance counter integration
+			IntegratePerfCounters(b, fmt.Sprintf("GEMM_%dx%dx%d", N, N, N), func() {
 				GEMM(false, false, N, N, N, 1.0, d_A, N, d_B, N, 0.0, d_C, N)
 				Synchronize()
-			}
+			})
 			
 			// Report GFLOPS per operation (correct calculation)
 			flops := float64(2 * N * N * N) // multiply-add per GEMM
@@ -125,6 +133,21 @@ func BenchmarkGEMM(b *testing.B) {
 			practicalPeak := 100.0
 			efficiency := gflopsPerOp / practicalPeak * 100
 			b.ReportMetric(efficiency, "efficiency_%")
+			
+			// Report arithmetic intensity
+			bytes := float64(3 * N * N * 4)
+			arithmeticIntensity := flops / bytes
+			b.ReportMetric(arithmeticIntensity, "FLOPS/byte")
+			
+			// Roofline analysis
+			peakBandwidth := 50.0 // GB/s typical DDR4
+			memoryBound := peakBandwidth * arithmeticIntensity
+			achievable := min(gflopsPerOp, memoryBound)
+			if memoryBound < gflopsPerOp {
+				b.ReportMetric(1.0, "memory_bound")
+			} else {
+				b.ReportMetric(0.0, "compute_bound")
+			}
 		})
 	}
 }
@@ -260,4 +283,22 @@ func formatBytes(bytes int) string {
 		exp++
 	}
 	return fmt.Sprintf("%d%cB", bytes/int(div), "KMGTPE"[exp])
+}
+
+// min returns the minimum of two values
+func min(a, b interface{}) interface{} {
+	switch a := a.(type) {
+	case int:
+		if b := b.(int); a < b {
+			return a
+		}
+		return b
+	case float64:
+		if b := b.(float64); a < b {
+			return a
+		}
+		return b
+	default:
+		panic("unsupported type")
+	}
 }
