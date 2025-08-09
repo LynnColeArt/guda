@@ -2,13 +2,21 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-//go:build !noasm && !gccgo && !safe
-// +build !noasm,!gccgo,!safe
+//go:build amd64 && !noasm && !gccgo && !safe
+// +build amd64,!noasm,!gccgo,!safe
 
 package f32
 
 import (
 	"math"
+	"runtime"
+	"golang.org/x/sys/cpu"
+)
+
+// CPU feature detection - use appropriate variables for the architecture
+var (
+	hasAVX2 = (runtime.GOARCH == "amd64" || runtime.GOARCH == "386") && cpu.X86.HasAVX2
+	hasFMA  = (runtime.GOARCH == "amd64" || runtime.GOARCH == "386") && cpu.X86.HasFMA
 )
 
 // Assembly implementations for AVX2

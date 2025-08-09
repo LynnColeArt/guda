@@ -39,9 +39,9 @@ func GemmKernel8x8(a *float64, b *float64, c *float64, k int, lda, ldb, ldc int)
 	GemmKernel4x4(a, b, c, k, lda, ldb, ldc)
 	GemmKernel4x4(a, (*float64)(unsafe.Pointer(uintptr(unsafe.Pointer(b))+4*8)), 
 		(*float64)(unsafe.Pointer(uintptr(unsafe.Pointer(c))+4*8)), k, lda, ldb, ldc)
-	GemmKernel4x4((*float64)(unsafe.Pointer(uintptr(unsafe.Pointer(a))+4*lda*8)), b, 
-		(*float64)(unsafe.Pointer(uintptr(unsafe.Pointer(c))+4*ldc*8)), k, lda, ldb, ldc)
-	GemmKernel4x4((*float64)(unsafe.Pointer(uintptr(unsafe.Pointer(a))+4*lda*8)), 
+	GemmKernel4x4((*float64)(unsafe.Pointer(uintptr(unsafe.Pointer(a))+uintptr(4*lda*8))), b, 
+		(*float64)(unsafe.Pointer(uintptr(unsafe.Pointer(c))+uintptr(4*ldc*8))), k, lda, ldb, ldc)
+	GemmKernel4x4((*float64)(unsafe.Pointer(uintptr(unsafe.Pointer(a))+uintptr(4*lda*8))), 
 		(*float64)(unsafe.Pointer(uintptr(unsafe.Pointer(b))+4*8)), 
-		(*float64)(unsafe.Pointer(uintptr(unsafe.Pointer(c))+4*ldc*8+4*8)), k, lda, ldb, ldc)
+		(*float64)(unsafe.Pointer(uintptr(unsafe.Pointer(c))+uintptr(4*ldc*8)+4*8)), k, lda, ldb, ldc)
 }

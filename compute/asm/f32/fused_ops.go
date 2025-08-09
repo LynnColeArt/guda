@@ -2,8 +2,8 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-//go:build !noasm && !appengine && !gccgo
-// +build !noasm,!appengine,!gccgo
+//go:build amd64 && !noasm && !appengine && !gccgo
+// +build amd64,!noasm,!appengine,!gccgo
 
 package f32
 

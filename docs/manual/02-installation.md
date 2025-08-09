@@ -311,6 +311,8 @@ Now that GUDA is installed and verified, you're ready to dive into the fun stuff
 
 Head over to [Quick Start Guide](03-quickstart.md) to write your first high-performance programs, or jump to [Architecture Overview](04-architecture.md) to understand how GUDA works its magic.
 
+For detailed information about ARM64 implementation and optimizations, see [ARM64 Support Documentation](../README_ARM64.md).
+
 ---
 
 *🎉 Welcome to the GUDA family! You're now ready to make CPUs do amazing things.*

@@ -1,6 +1,7 @@
 package guda
 
 import (
+	"fmt"
 	"math"
 )
 
@@ -130,6 +131,21 @@ func (d DevicePtr) Float16() Float16Slice {
 
 // AddFloat16 performs element-wise addition on Float16 arrays
 func AddFloat16(a, b, c DevicePtr, n int) error {
+	// Check if we have valid data
+	aLen := a.Float16().Len()
+	bLen := b.Float16().Len()
+	cLen := c.Float16().Len()
+	
+	// Verify we have enough data to perform the operation
+	if aLen < n || bLen < n || cLen < n {
+		return fmt.Errorf("insufficient data for AddFloat16 operation: aLen=%d, bLen=%d, cLen=%d, n=%d", 
+			aLen, bLen, cLen, n)
+	}
+	
+	if n <= 0 {
+		return nil // Nothing to do
+	}
+	
 	grid := Dim3{X: (n + 255) / 256, Y: 1, Z: 1}
 	block := Dim3{X: 256, Y: 1, Z: 1}
 	
@@ -153,6 +169,21 @@ func AddFloat16(a, b, c DevicePtr, n int) error {
 
 // MultiplyFloat16 performs element-wise multiplication on Float16 arrays
 func MultiplyFloat16(a, b, c DevicePtr, n int) error {
+	// Check if we have valid data
+	aLen := a.Float16().Len()
+	bLen := b.Float16().Len()
+	cLen := c.Float16().Len()
+	
+	// Verify we have enough data to perform the operation
+	if aLen < n || bLen < n || cLen < n {
+		return fmt.Errorf("insufficient data for MultiplyFloat16 operation: aLen=%d, bLen=%d, cLen=%d, n=%d", 
+			aLen, bLen, cLen, n)
+	}
+	
+	if n <= 0 {
+		return nil // Nothing to do
+	}
+	
 	grid := Dim3{X: (n + 255) / 256, Y: 1, Z: 1}
 	block := Dim3{X: 256, Y: 1, Z: 1}
 	
@@ -213,52 +244,103 @@ func GEMMFloat16(transA, transB bool, m, n, k int, alpha float32,
 	cSize := m * n
 	
 	// Allocate temp float32 buffers
-	aF32, _ := Malloc(aSize * 4)
-	bF32, _ := Malloc(bSize * 4)
-	cF32, _ := Malloc(cSize * 4)
+	aF32, err := Malloc(aSize * 4)
+	if err != nil {
+		return err
+	}
 	defer Free(aF32)
+	
+	bF32, err := Malloc(bSize * 4)
+	if err != nil {
+		return err
+	}
 	defer Free(bF32)
+	
+	cF32, err := Malloc(cSize * 4)
+	if err != nil {
+		return err
+	}
 	defer Free(cF32)
 	
 	// Convert A and B to float32
-	convertF16ToF32(a, aF32, aSize)
-	convertF16ToF32(b, bF32, bSize)
+	err = convertF16ToF32(a, aF32, aSize)
+	if err != nil {
+		return err
+	}
+	
+	err = convertF16ToF32(b, bF32, bSize)
+	if err != nil {
+		return err
+	}
 	
 	// If beta != 0, convert C as well
 	if beta != 0 {
-		convertF16ToF32(c, cF32, cSize)
+		err = convertF16ToF32(c, cF32, cSize)
+		if err != nil {
+			return err
+		}
 	}
 	
 	// Perform GEMM in float32
-	err := GEMM(transA, transB, m, n, k, alpha, aF32, lda, bF32, ldb, beta, cF32, ldc)
+	err = GEMM(transA, transB, m, n, k, alpha, aF32, lda, bF32, ldb, beta, cF32, ldc)
 	if err != nil {
 		return err
 	}
 	
 	// Convert result back to float16
-	convertF32ToF16(cF32, c, cSize)
-	
-	return nil
+	return convertF32ToF16(cF32, c, cSize)
 }
 
 // Helper functions for bulk conversion
 
-func convertF16ToF32(src, dst DevicePtr, n int) {
-	srcF16 := src.Float16()
-	dstF32 := dst.Float32()
+func convertF16ToF32(src, dst DevicePtr, n int) error {
+	// Check if we have valid data
+	srcSlice := src.Float16()
+	dstSlice := dst.Float32()
+	
+	srcLen := srcSlice.Len()
+	dstLen := len(dstSlice)
+	
+	// Verify we have enough data to perform the operation
+	if srcLen < n || dstLen < n {
+		return fmt.Errorf("insufficient data for convertF16ToF32 operation: srcLen=%d, dstLen=%d, n=%d", 
+			srcLen, dstLen, n)
+	}
+	
+	if n <= 0 {
+		return nil // Nothing to do
+	}
 	
 	// In production, use SIMD F16C VCVTPH2PS instruction
 	for i := 0; i < n; i++ {
-		dstF32[i] = srcF16.GetFloat32(i)
+		dstSlice[i] = srcSlice.GetFloat32(i)
 	}
+	
+	return nil
 }
 
-func convertF32ToF16(src, dst DevicePtr, n int) {
-	srcF32 := src.Float32()
-	dstF16 := dst.Float16()
+func convertF32ToF16(src, dst DevicePtr, n int) error {
+	// Check if we have valid data
+	srcSlice := src.Float32()
+	dstSlice := dst.Float16()
+	
+	srcLen := len(srcSlice)
+	dstLen := dstSlice.Len()
+	
+	// Verify we have enough data to perform the operation
+	if srcLen < n || dstLen < n {
+		return fmt.Errorf("insufficient data for convertF32ToF16 operation: srcLen=%d, dstLen=%d, n=%d", 
+			srcLen, dstLen, n)
+	}
+	
+	if n <= 0 {
+		return nil // Nothing to do
+	}
 	
 	// In production, use SIMD F16C VCVTPS2PH instruction
 	for i := 0; i < n; i++ {
-		dstF16.SetFloat32(i, srcF32[i])
+		dstSlice.SetFloat32(i, srcSlice[i])
 	}
+	
+	return nil
 }

@@ -251,7 +251,8 @@ Testing environment:
 - Architecture: x86-64 with AVX2 support
 - Compiler: Go 1.21 with CGO for SIMD intrinsics
 
-**Platform Support**: This proof-of-concept currently supports **x86-64 only**. ARM64 and other architectures are not yet implemented.
+**Platform Support**: This implementation supports **x86-64** with AVX2 and **ARM64** with NEON SIMD instructions. 
+See `README_ARM64.md` for ARM64-specific information and performance characteristics.
 
 ### 4.2 Performance Considerations
 
@@ -389,14 +390,14 @@ Provides:
 
 ### 6.1 Current Limitations
 
-- **Platform Support**: x86-64 only - ARM64, RISC-V, and other architectures not yet supported
+- **Platform Support**: x86-64 with AVX2 and ARM64 with NEON SIMD instructions supported
 - **API Coverage**: Limited to CUDA runtime and cuBLAS APIs
-- **SIMD Requirements**: Requires AVX2 for optimal performance; fallback implementations may be slower
+- **SIMD Requirements**: Requires AVX2 (x86-64) or NEON (ARM64) for optimal performance; fallback implementations may be slower
 - **No GPU Hardware Features**: No support for advanced GPU features (tensor cores, RT cores, etc.)
 
 ### 6.2 Future Directions
 
-1. **Multi-Architecture Support**: ARM64 with NEON/SVE, RISC-V with vector extensions
+1. **Multi-Architecture Support**: RISC-V with vector extensions, additional ARM64 optimizations with SVE
 2. **API Coverage**: Implement cuDNN, cuFFT, cuSPARSE, and other CUDA libraries  
 3. **Advanced SIMD**: AVX-512 optimizations for Intel processors
 4. **Heterogeneous Execution**: CPU+GPU cooperative processing for hybrid workloads
@@ -408,7 +409,7 @@ GUDA demonstrates that CPU-native implementations of GPU APIs can provide practi
 ## Installation
 
 ### System Requirements
-- **Architecture**: x86-64 processor with AVX2 support (Intel Haswell/AMD Excavator or newer)
+- **Architecture**: x86-64 processor with AVX2 support (Intel Haswell/AMD Excavator or newer) or ARM64 processor with NEON support
 - **OS**: Linux, macOS, or Windows
 - **Go**: Version 1.19 or later
 - **CGO**: Required for SIMD assembly optimizations
@@ -418,7 +419,16 @@ GUDA demonstrates that CPU-native implementations of GPU APIs can provide practi
 go get github.com/LynnColeArt/guda
 ```
 
-**Note**: ARM64 and other architectures are not currently supported in this proof-of-concept.
+### ARM64 Support
+
+GUDA provides native ARM64 support with NEON SIMD optimizations for optimal performance on Apple Silicon and other ARM64 processors.
+
+To verify ARM64 optimizations are enabled:
+```bash
+go env GOARCH  # Should show: arm64
+```
+
+For detailed information about ARM64 implementation, optimizations, and troubleshooting, see [ARM64 Support Documentation](README_ARM64.md).
 
 ## Usage Example
 

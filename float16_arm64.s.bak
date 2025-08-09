@@ -1,0 +1,357 @@
+// +build arm64
+
+#include "textflag.h"
+
+// func simdF16ToF32NEON(src, dst unsafe.Pointer, n int)
+// Converts float16 to float32 using ARM64 NEON instructions
+TEXT ·simdF16ToF32NEON(SB), NOSPLIT, $0-24
+    MOVD src+0(FP), R0    // source pointer
+    MOVD dst+8(FP), R1    // destination pointer
+    MOVD n+16(FP), R2     // count
+    
+    // Process 8 elements at a time (128-bit vectors)
+    MOVW $8, R3
+    UDIV R4, R2, R3       // R4 = n / 8
+    CBZ  R4, tail         // If less than 8 elements, go to tail
+    
+loop8:
+    // Load 8 float16 values (128 bits)
+    VLD1.P16 (R0), [V0.H8]
+    
+    // Convert to 8 float32 values using ARM64 NEON fcvtl instruction
+    FCVTL V1.S4, V0.H4    // Convert low 4 float16 to float32
+    FCVTL2 V2.S4, V0.H8   // Convert high 4 float16 to float32
+    
+    // Store 8 float32 values (256 bits total)
+    VST1.P32 [V1.S4], (R1)
+    VST1.P32 [V2.S4], (R1)
+    
+    // Advance pointers
+    ADD $16, R0, R0       // Advance src by 16 bytes (8 float16s)
+    ADD $32, R1, R1       // Advance dst by 32 bytes (8 float32s)
+    
+    // Decrement loop counter
+    SUB $1, R4, R4
+    CBNZ R4, loop8
+    
+tail:
+    AND $7, R2, R3        // R3 = n % 8
+    CBZ R3, done          // If no tail elements, we're done
+    
+tailloop:
+    // Load one float16
+    MOVHU (R0), R4
+    
+    // Convert to float32 using scalar conversion
+    FMOV F0, R4           // Move half-precision value to floating-point register
+    FCVT S0, H0           // Convert half to single precision
+    
+    // Store one float32
+    FMOVS (R1), F0        // Store float32
+    
+    // Advance pointers
+    ADD $2, R0, R0        // Advance src by 2 bytes (1 float16)
+    ADD $4, R1, R1        // Advance dst by 4 bytes (1 float32)
+    
+    // Decrement counter
+    SUB $1, R3, R3
+    CBNZ R3, tailloop
+    
+done:
+    RET
+
+// func simdF32ToF16NEON(src, dst unsafe.Pointer, n int)
+// Converts float32 to float16 using ARM64 NEON instructions
+TEXT ·simdF32ToF16NEON(SB), NOSPLIT, $0-24
+    MOVD src+0(FP), R0    // source pointer
+    MOVD dst+8(FP), R1    // destination pointer
+    MOVD n+16(FP), R2     // count
+    
+    // Process 8 elements at a time (8 float32s = 32 bytes)
+    MOVW $8, R3
+    UDIV R4, R2, R3       // R4 = n / 8
+    CBZ  R4, tail2        // If less than 8 elements, go to tail
+    
+loop8_2:
+    // Load 8 float32 values (256 bits)
+    VLD1.P32 [V0.S4], (R0)
+    VLD1.P32 [V1.S4], (R0)
+    
+    // Convert to 8 float16 values using ARM64 NEON fcvtn instruction
+    FCVTN V2.H4, V0.S4    // Convert first 4 float32 to float16
+    FCVTN2 V2.H8, V1.S4   // Convert second 4 float32 to float16 and combine
+    
+    // Store 8 float16 values (128 bits = 16 bytes)
+    VST1.P16 [V2.H8], (R1)
+    
+    // Advance pointers
+    ADD $32, R0, R0       // Advance src by 32 bytes (8 float32s)
+    ADD $16, R1, R1       // Advance dst by 16 bytes (8 float16s)
+    
+    // Decrement loop counter
+    SUB $1, R4, R4
+    CBNZ R4, loop8_2
+    
+tail2:
+    AND $7, R2, R3        // R3 = n % 8
+    CBZ R3, done2         // If no tail elements, we're done
+    
+tailloop2:
+    // Load one float32
+    FMOVS F0, (R0)        // Load float32
+    
+    // Convert to float16 using scalar conversion
+    FCVT H0, S0           // Convert single to half precision
+    
+    // Store one float16
+    FMOV R4, H0           // Move half-precision value to general register
+    MOVH R4, (R1)         // Store float16
+    
+    // Advance pointers
+    ADD $4, R0, R0        // Advance src by 4 bytes (1 float32)
+    ADD $2, R1, R1        // Advance dst by 2 bytes (1 float16)
+    
+    // Decrement counter
+    SUB $1, R3, R3
+    CBNZ R3, tailloop2
+    
+done2:
+    RET
+
+// func simdAddFloat16NEON(a, b, c unsafe.Pointer, n int) error
+// Adds two float16 arrays using ARM64 NEON
+TEXT ·simdAddFloat16NEON(SB), NOSPLIT, $0-32
+    MOVD a+0(FP), R0      // source A pointer
+    MOVD b+8(FP), R1      // source B pointer
+    MOVD c+16(FP), R2     // destination pointer
+    MOVD n+24(FP), R3     // count
+    
+    // Process 8 elements at a time
+    MOVW $8, R4
+    UDIV R5, R3, R4       // R5 = n / 8
+    CBZ  R5, tail3        // If less than 8 elements, go to tail
+    
+loop8_3:
+    // Load 8 float16 from A and B
+    VLD1.P16 [V0.H8], (R0)
+    VLD1.P16 [V1.H8], (R1)
+    
+    // Convert to float32
+    FCVTL V2.S4, V0.H4    // Convert A (low 4) to float32
+    FCVTL2 V3.S4, V0.H8   // Convert A (high 4) to float32
+    FCVTL V4.S4, V1.H4    // Convert B (low 4) to float32
+    FCVTL2 V5.S4, V1.H8   // Convert B (high 4) to float32
+    
+    // Add float32 values
+    FADD V6.S4, V2.S4, V4.S4  // Add low 4
+    FADD V7.S4, V3.S4, V5.S4  // Add high 4
+    
+    // Convert result back to float16
+    FCVTN V8.H4, V6.S4        // Convert low 4 to float16
+    FCVTN2 V8.H8, V7.S4       // Convert high 4 to float16 and combine
+    
+    // Store result
+    VST1.P16 [V8.H8], (R2)
+    
+    // Advance pointers
+    ADD $16, R0, R0       // Advance A by 16 bytes (8 float16s)
+    ADD $16, R1, R1       // Advance B by 16 bytes (8 float16s)
+    ADD $16, R2, R2       // Advance C by 16 bytes (8 float16s)
+    
+    // Decrement loop counter
+    SUB $1, R5, R5
+    CBNZ R5, loop8_3
+    
+tail3:
+    AND $7, R3, R4        // R4 = n % 8
+    CBZ R4, done3         // If no tail elements, we're done
+    
+    // For tail, use scalar operations
+tailloop3:
+    // Load A[i] and B[i]
+    MOVHU (R0), R5        // Load A[i]
+    MOVHU (R1), R6        // Load B[i]
+    
+    // Convert, add, convert back using scalar operations
+    FMOV F0, R5           // Convert A[i] to float32
+    FCVT S0, H0
+    FMOV F1, R6           // Convert B[i] to float32
+    FCVT S1, H1
+    FADDS F2, F0, F1      // Add
+    FCVT H2, S2           // Convert back to float16
+    FMOV R7, H2
+    MOVH R7, (R2)         // Store result
+    
+    // Advance pointers
+    ADD $2, R0, R0        // Advance A by 2 bytes
+    ADD $2, R1, R1        // Advance B by 2 bytes
+    ADD $2, R2, R2        // Advance C by 2 bytes
+    
+    // Decrement counter
+    SUB $1, R4, R4
+    CBNZ R4, tailloop3
+    
+done3:
+    MOVD $0, ret+0(FP)    // Return nil error
+    RET
+
+// func simdMulFloat16NEON(a, b, c unsafe.Pointer, n int) error
+// Multiplies two float16 arrays using ARM64 NEON
+TEXT ·simdMulFloat16NEON(SB), NOSPLIT, $0-32
+    MOVD a+0(FP), R0      // source A pointer
+    MOVD b+8(FP), R1      // source B pointer
+    MOVD c+16(FP), R2     // destination pointer
+    MOVD n+24(FP), R3     // count
+    
+    // Process 8 elements at a time
+    MOVW $8, R4
+    UDIV R5, R3, R4       // R5 = n / 8
+    CBZ  R5, tail4        // If less than 8 elements, go to tail
+    
+loop8_4:
+    // Load 8 float16 from A and B
+    VLD1.P16 [V0.H8], (R0)
+    VLD1.P16 [V1.H8], (R1)
+    
+    // Convert to float32
+    FCVTL V2.S4, V0.H4    // Convert A (low 4) to float32
+    FCVTL2 V3.S4, V0.H8   // Convert A (high 4) to float32
+    FCVTL V4.S4, V1.H4    // Convert B (low 4) to float32
+    FCVTL2 V5.S4, V1.H8   // Convert B (high 4) to float32
+    
+    // Multiply float32 values
+    FMUL V6.S4, V2.S4, V4.S4  // Multiply low 4
+    FMUL V7.S4, V3.S4, V5.S4  // Multiply high 4
+    
+    // Convert result back to float16
+    FCVTN V8.H4, V6.S4        // Convert low 4 to float16
+    FCVTN2 V8.H8, V7.S4       // Convert high 4 to float16 and combine
+    
+    // Store result
+    VST1.P16 [V8.H8], (R2)
+    
+    // Advance pointers
+    ADD $16, R0, R0       // Advance A by 16 bytes
+    ADD $16, R1, R1       // Advance B by 16 bytes
+    ADD $16, R2, R2       // Advance C by 16 bytes
+    
+    // Decrement loop counter
+    SUB $1, R5, R5
+    CBNZ R5, loop8_4
+    
+tail4:
+    AND $7, R3, R4        // R4 = n % 8
+    CBZ R4, done4         // If no tail elements, we're done
+    
+tailloop4:
+    // Load A[i] and B[i]
+    MOVHU (R0), R5        // Load A[i]
+    MOVHU (R1), R6        // Load B[i]
+    
+    // Convert, multiply, convert back using scalar operations
+    FMOV F0, R5           // Convert A[i] to float32
+    FCVT S0, H0
+    FMOV F1, R6           // Convert B[i] to float32
+    FCVT S1, H1
+    FMULS F2, F0, F1      // Multiply
+    FCVT H2, S2           // Convert back to float16
+    FMOV R7, H2
+    MOVH R7, (R2)         // Store result
+    
+    // Advance pointers
+    ADD $2, R0, R0        // Advance A by 2 bytes
+    ADD $2, R1, R1        // Advance B by 2 bytes
+    ADD $2, R2, R2        // Advance C by 2 bytes
+    
+    // Decrement counter
+    SUB $1, R4, R4
+    CBNZ R4, tailloop4
+    
+done4:
+    MOVD $0, ret+0(FP)    // Return nil error
+    RET
+
+// func simdFMAFloat16NEON(a, b, c, d unsafe.Pointer, n int) error
+// Performs d = a*b + c using ARM64 NEON
+TEXT ·simdFMAFloat16NEON(SB), NOSPLIT, $0-40
+    MOVD a+0(FP), R0      // source A pointer
+    MOVD b+8(FP), R1      // source B pointer
+    MOVD c+16(FP), R2     // source C pointer
+    MOVD d+24(FP), R3     // destination pointer
+    MOVD n+32(FP), R4     // count
+    
+    // Process 8 elements at a time
+    MOVW $8, R5
+    UDIV R6, R4, R5       // R6 = n / 8
+    CBZ  R6, tail5        // If less than 8 elements, go to tail
+    
+loop8_5:
+    // Load 8 float16 from A, B, and C
+    VLD1.P16 [V0.H8], (R0)
+    VLD1.P16 [V1.H8], (R1)
+    VLD1.P16 [V2.H8], (R2)
+    
+    // Convert to float32
+    FCVTL V3.S4, V0.H4    // Convert A (low 4) to float32
+    FCVTL2 V4.S4, V0.H8   // Convert A (high 4) to float32
+    FCVTL V5.S4, V1.H4    // Convert B (low 4) to float32
+    FCVTL2 V6.S4, V1.H8   // Convert B (high 4) to float32
+    FCVTL V7.S4, V2.H4    // Convert C (low 4) to float32
+    FCVTL2 V8.S4, V2.H8   // Convert C (high 4) to float32
+    
+    // Compute d = a*b + c using FMA
+    FMLA V7.S4, V3.S4, V5.S4  // V7 = V3 * V5 + V7 (low 4)
+    FMLA V8.S4, V4.S4, V6.S4  // V8 = V4 * V6 + V8 (high 4)
+    
+    // Convert result back to float16
+    FCVTN V9.H4, V7.S4        // Convert low 4 to float16
+    FCVTN2 V9.H8, V8.S4       // Convert high 4 to float16 and combine
+    
+    // Store result
+    VST1.P16 [V9.H8], (R3)
+    
+    // Advance pointers
+    ADD $16, R0, R0       // Advance A by 16 bytes
+    ADD $16, R1, R1       // Advance B by 16 bytes
+    ADD $16, R2, R2       // Advance C by 16 bytes
+    ADD $16, R3, R3       // Advance D by 16 bytes
+    
+    // Decrement loop counter
+    SUB $1, R6, R6
+    CBNZ R6, loop8_5
+    
+tail5:
+    AND $7, R4, R5        // R5 = n % 8
+    CBZ R5, done5         // If no tail elements, we're done
+    
+tailloop5:
+    // Load A[i], B[i], and C[i]
+    MOVHU (R0), R6        // Load A[i]
+    MOVHU (R1), R7        // Load B[i]
+    MOVHU (R2), R8        // Load C[i]
+    
+    // Convert, compute FMA, convert back using scalar operations
+    FMOV F0, R6           // Convert A[i] to float32
+    FCVT S0, H0
+    FMOV F1, R7           // Convert B[i] to float32
+    FCVT S1, H1
+    FMOV F2, R8           // Convert C[i] to float32
+    FCVT S2, H2
+    FMLAS F2, F0, F1      // F2 = F0 * F1 + F2
+    FCVT H3, S2           // Convert back to float16
+    FMOV R9, H3
+    MOVH R9, (R3)         // Store result
+    
+    // Advance pointers
+    ADD $2, R0, R0        // Advance A by 2 bytes
+    ADD $2, R1, R1        // Advance B by 2 bytes
+    ADD $2, R2, R2        // Advance C by 2 bytes
+    ADD $2, R3, R3        // Advance D by 2 bytes
+    
+    // Decrement counter
+    SUB $1, R5, R5
+    CBNZ R5, tailloop5
+    
+done5:
+    MOVD $0, ret+0(FP)    // Return nil error
+    RET

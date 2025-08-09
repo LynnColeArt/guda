@@ -16,6 +16,13 @@ func (ctx *Context) launchInternal(
 	gridSize := grid.Size()
 	blockSize := block.Size()
 	
+	// Handle edge case where grid size is zero
+	if gridSize == 0 {
+		// Submit an empty task to maintain stream ordering
+		stream.Submit(func() {})
+		return nil
+	}
+	
 	// Determine parallelism strategy
 	numWorkers := runtime.NumCPU()
 	if gridSize < numWorkers {
