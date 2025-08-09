@@ -16,8 +16,8 @@
 //	ctx.Memcpy(d_b, h_b, n*4, guda.MemcpyHostToDevice)
 //	
 //	// Launch kernel
-//	grid := guda.Dim3{X: (n + 255) / 256}
-//	block := guda.Dim3{X: 256}
+//	grid := guda.Dim3{X: (n + guda.DefaultBlockSize - 1) / guda.DefaultBlockSize}
+//	block := guda.Dim3{X: guda.DefaultBlockSize}
 //	ctx.LaunchKernel(myKernel, grid, block, args...)
 package guda
 

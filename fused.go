@@ -1,19 +1,17 @@
 package guda
 
 import (
-	"errors"
-	
 	"github.com/LynnColeArt/guda/blas"
 	"github.com/LynnColeArt/guda/blas/blas32"
 	"github.com/LynnColeArt/guda/compute/asm/f32"
 )
 
 var (
-	ErrNotSupported     = errors.New("operation not supported")
-	ErrInvalidShape     = errors.New("invalid shape")
-	ErrInvalidAxis      = errors.New("invalid axis")
-	ErrInvalidIndex     = errors.New("invalid index")
-	ErrInvalidParameter = errors.New("invalid parameter")
+	ErrNotSupported     = &GUDAError{Type: ErrTypeNotImplemented, Op: "FusedOp", Message: "operation not supported"}
+	ErrInvalidShape     = NewInvalidArgError("FusedOp", "invalid shape")
+	ErrInvalidAxis      = NewInvalidArgError("FusedOp", "invalid axis")
+	ErrInvalidIndex     = NewInvalidArgError("FusedOp", "invalid index")
+	ErrInvalidParameter = NewInvalidArgError("FusedOp", "invalid parameter")
 )
 
 // FusedKernel represents a kernel that performs multiple operations in one pass
@@ -121,8 +119,8 @@ func (fk *FusedKernel) Custom(fn func(float32) float32) *FusedKernel {
 // others: additional tensors for binary operations
 // shapes: shape information for broadcasting support [[dim1, dim2], ...]
 func (fk *FusedKernel) Execute(x DevicePtr, others []DevicePtr, n int, shapes ...[]int) error {
-	grid := Dim3{X: (n + 255) / 256, Y: 1, Z: 1}
-	block := Dim3{X: 256, Y: 1, Z: 1}
+	grid := Dim3{X: (n + DefaultBlockSize - 1) / DefaultBlockSize, Y: 1, Z: 1}
+	block := Dim3{X: DefaultBlockSize, Y: 1, Z: 1}
 	
 	kernel := KernelFunc(func(tid ThreadID, args ...interface{}) {
 		idx := tid.Global()
@@ -222,8 +220,8 @@ func AddBiasReLU(x, bias DevicePtr, n int) error {
 	// The broadcast logic in fused kernels needs more work for proper tensor shapes
 	biasLen := bias.size / 4 // number of float32s in bias
 	
-	grid := Dim3{X: (n + 255) / 256, Y: 1, Z: 1}
-	block := Dim3{X: 256, Y: 1, Z: 1}
+	grid := Dim3{X: (n + DefaultBlockSize - 1) / DefaultBlockSize, Y: 1, Z: 1}
+	block := Dim3{X: DefaultBlockSize, Y: 1, Z: 1}
 	
 	kernel := KernelFunc(func(tid ThreadID, args ...interface{}) {
 		idx := tid.Global()
@@ -283,8 +281,8 @@ func LayerNorm(x DevicePtr, gamma, beta DevicePtr, n int, eps float32) error {
 	invStd := 1.0 / (variance + eps)
 	
 	// Second pass: normalize and apply gamma/beta
-	grid := Dim3{X: (n + 255) / 256, Y: 1, Z: 1}
-	block := Dim3{X: 256, Y: 1, Z: 1}
+	grid := Dim3{X: (n + DefaultBlockSize - 1) / DefaultBlockSize, Y: 1, Z: 1}
+	block := Dim3{X: DefaultBlockSize, Y: 1, Z: 1}
 	
 	kernel := KernelFunc(func(tid ThreadID, args ...interface{}) {
 		idx := tid.Global()
@@ -370,8 +368,8 @@ func fusedGEMMBiasReLUOptimized(m, n, k int, alpha float32, a []float32, lda int
 // fusedGEMMBiasReLUKernel processes one tile with all operations fused
 func fusedGEMMBiasReLUKernel(m, n, k int, alpha float32, a []float32, lda int, b []float32, ldb int, bias []float32, c []float32, ldc int) {
 	const (
-		MR = 8 // Micro-kernel processes 8x8 blocks
-		NR = 8
+		MR = GEMMMicroKernelM // Micro-kernel processes 8x8 blocks
+		NR = GEMMMicroKernelN
 	)
 	
 	// Process 8x8 blocks with AVX2 assembly

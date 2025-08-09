@@ -183,9 +183,9 @@ func GEMMFloat16SIMD(transA, transB bool, m, n, k int, alpha float32,
 	}
 	
 	// Optimized tiled GEMM with F16C
-	const tileM = 6  // 6x16 register blocking for AVX2
-	const tileN = 16
-	const tileK = 8  // Process 8 K elements at a time with F16C
+	const tileM = Float16TileM  // 6x16 register blocking for AVX2
+	const tileN = Float16TileN
+	const tileK = Float16TileK  // Process 8 K elements at a time with F16C
 	
 	// Process tiles
 	for i := 0; i < m; i += tileM {
@@ -245,7 +245,7 @@ func gemmFloat16Tiled(transA, transB bool, m, n, k int, alpha float32,
 	c DevicePtr, ldc int) error {
 	
 	// Use the existing float16_simd.go implementation
-	const tileSize = 64
+	const tileSize = DefaultTileSize
 	
 	grid := Dim3{X: (n + tileSize - 1) / tileSize, Y: (m + tileSize - 1) / tileSize, Z: 1}
 	block := Dim3{X: 16, Y: 16, Z: 1}
@@ -413,7 +413,7 @@ func LayerNormFloat16SIMD(input, gamma, beta, output DevicePtr, n, hidden int) e
 	// n = batch size, hidden = hidden dimension
 	
 	grid := Dim3{X: n, Y: 1, Z: 1}
-	block := Dim3{X: min(256, hidden), Y: 1, Z: 1}
+	block := Dim3{X: min(DefaultBlockSize, hidden), Y: 1, Z: 1}
 	
 	return Launch(KernelFunc(func(tid ThreadID, args ...interface{}) {
 		batch := tid.BlockIdx.X

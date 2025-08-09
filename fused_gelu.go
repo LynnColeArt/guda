@@ -12,8 +12,8 @@ import (
 func AddBiasGELU(x, bias DevicePtr, n int) error {
 	biasLen := bias.size / 4 // number of float32s in bias
 	
-	grid := Dim3{X: (n + 255) / 256, Y: 1, Z: 1}
-	block := Dim3{X: 256, Y: 1, Z: 1}
+	grid := Dim3{X: (n + DefaultBlockSize - 1) / DefaultBlockSize, Y: 1, Z: 1}
+	block := Dim3{X: DefaultBlockSize, Y: 1, Z: 1}
 	
 	kernel := KernelFunc(func(tid ThreadID, args ...interface{}) {
 		idx := tid.Global()

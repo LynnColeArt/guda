@@ -111,20 +111,25 @@ func NewNumericalError(op string, message string, context interface{}) error {
 // Common pre-defined errors
 
 var (
-	// ErrOutOfMemory indicates memory allocation failure
+	// Memory errors
 	ErrOutOfMemory = NewMemoryError("Malloc", "out of memory", nil)
-	
-	// ErrInvalidSize indicates invalid size parameter
 	ErrInvalidSize = NewInvalidArgError("Malloc", "size must be positive")
-	
-	// ErrNullPointer indicates null pointer access
 	ErrNullPointer = NewInvalidArgError("Memory", "null pointer")
-	
-	// ErrDoubleFree indicates double free attempt
 	ErrDoubleFree = NewMemoryError("Free", "double free detected", nil)
 	
-	// ErrInvalidDevice indicates invalid device ID
+	// Device errors
 	ErrInvalidDevice = NewInvalidArgError("SetDevice", "invalid device ID")
+	ErrNoDevice = &GUDAError{Type: ErrTypeDevice, Op: "Device", Message: "no compute device available"}
+	
+	// Execution errors
+	ErrStreamClosed = NewExecutionError("Stream", "stream is closed", nil)
+	ErrKernelFailed = NewExecutionError("Kernel", "kernel execution failed", nil)
+	
+	// Numerical errors
+	ErrNaN = NewNumericalError("Compute", "NaN detected in computation", nil)
+	ErrInf = NewNumericalError("Compute", "Inf detected in computation", nil)
+	ErrOverflow = NewNumericalError("Compute", "numerical overflow", nil)
+	ErrUnderflow = NewNumericalError("Compute", "numerical underflow", nil)
 )
 
 // IsMemoryError checks if an error is a memory error
@@ -139,6 +144,38 @@ func IsMemoryError(err error) bool {
 func IsInvalidArgError(err error) bool {
 	if e, ok := err.(*GUDAError); ok {
 		return e.Type == ErrTypeInvalidArg
+	}
+	return false
+}
+
+// IsExecutionError checks if an error is an execution error
+func IsExecutionError(err error) bool {
+	if e, ok := err.(*GUDAError); ok {
+		return e.Type == ErrTypeExecution
+	}
+	return false
+}
+
+// IsNumericalError checks if an error is a numerical error
+func IsNumericalError(err error) bool {
+	if e, ok := err.(*GUDAError); ok {
+		return e.Type == ErrTypeNumerical
+	}
+	return false
+}
+
+// IsDeviceError checks if an error is a device error
+func IsDeviceError(err error) bool {
+	if e, ok := err.(*GUDAError); ok {
+		return e.Type == ErrTypeDevice
+	}
+	return false
+}
+
+// IsNotImplementedError checks if an error is a not implemented error
+func IsNotImplementedError(err error) bool {
+	if e, ok := err.(*GUDAError); ok {
+		return e.Type == ErrTypeNotImplemented
 	}
 	return false
 }
