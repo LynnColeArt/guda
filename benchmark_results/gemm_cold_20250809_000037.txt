@@ -1,0 +1,15 @@
+goos: linux
+goarch: amd64
+pkg: github.com/LynnColeArt/guda
+cpu: AMD Ryzen 7 7700X 8-Core Processor             
+BenchmarkGEMMWithPerfCounters/Small_128-16         	   93006	     62280 ns/op	        21.33 FLOPS/byte	         3.157 GB/s	        67.35 GFLOPS	     16056 ops/s
+BenchmarkGEMMWithPerfCounters/Medium_512-16        	    3561	   1766878 ns/op	        85.33 FLOPS/byte	         1.780 GB/s	       151.9 GFLOPS	       566.0 ops/s
+BenchmarkGEMMWithPerfCounters/Large_1024-16        	     432	  14288348 ns/op	       170.7 FLOPS/byte	         0.8806 GB/s	       150.3 GFLOPS	        69.99 ops/s
+BenchmarkGEMM/N_128-16                             	   79675	     66755 ns/op	2945.20 MB/s	        21.33 FLOPS/byte	        62.83 GFLOPS(hot-cache)	         0 compute_bound	        62.83 efficiency_%
+BenchmarkGEMM/N_256-16                             	   22862	    268018 ns/op	2934.25 MB/s	        42.67 FLOPS/byte	       125.2 GFLOPS(hot-cache)	         0 compute_bound	       125.2 efficiency_%
+BenchmarkGEMM/N_512-16                             	    3241	   1756550 ns/op	1790.86 MB/s	        85.33 FLOPS/byte	       152.8 GFLOPS(hot-cache)	         0 compute_bound	       152.8 efficiency_%
+BenchmarkGEMM/N_1024-16                            	     426	  14055466 ns/op	 895.23 MB/s	       170.7 FLOPS/byte	       152.8 GFLOPS(hot-cache)	         0 compute_bound	       152.8 efficiency_%
+BenchmarkGEMM/N_2048-16                            	      51	 110498228 ns/op	 455.50 MB/s	       341.3 FLOPS/byte	       155.5 GFLOPS(hot-cache)	         0 compute_bound	       155.5 efficiency_%
+BenchmarkGEMM/N_4096-16                            	       6	 924317432 ns/op	 217.81 MB/s	       682.7 FLOPS/byte	       148.7 GFLOPS(hot-cache)	         0 compute_bound	       148.7 efficiency_%
+PASS
+ok  	github.com/LynnColeArt/guda	61.084s

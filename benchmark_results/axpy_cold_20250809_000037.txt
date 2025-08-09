@@ -1,0 +1,12 @@
+go: downloading golang.org/x/sys v0.35.0
+goos: linux
+goarch: amd64
+pkg: github.com/LynnColeArt/guda
+cpu: AMD Ryzen 7 7700X 8-Core Processor             
+BenchmarkAXPY/N_1024-16         	99579346	        59.52 ns/op	206451.77 MB/s	         0.1667 FLOPS/byte	        34.41 GFLOPS(hot-cache)
+BenchmarkAXPY/N_16384-16        	 7420273	       808.2 ns/op	243266.12 MB/s	         0.1667 FLOPS/byte	        40.54 GFLOPS(hot-cache)
+BenchmarkAXPY/N_262144-16       	  393049	     15087 ns/op	208499.23 MB/s	         0.1667 FLOPS/byte	        34.75 GFLOPS(hot-cache)
+BenchmarkAXPY/N_1048576-16      	  102687	     59096 ns/op	212923.19 MB/s	         0.1667 FLOPS/byte	        35.49 GFLOPS(hot-cache)
+BenchmarkAXPY/N_16777216-16     	    1537	   3568670 ns/op	56415.02 MB/s	         0.1667 FLOPS/byte	         9.403 GFLOPS(hot-cache)
+PASS
+ok  	github.com/LynnColeArt/guda	31.484s

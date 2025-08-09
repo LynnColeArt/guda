@@ -1,0 +1,14 @@
+goos: linux
+goarch: amd64
+pkg: github.com/LynnColeArt/guda
+cpu: AMD Ryzen 7 7700X 8-Core Processor             
+BenchmarkMemoryBandwidth/Copy_1KB-16         	144058422	        41.99 ns/op	48778.80 MB/s
+BenchmarkMemoryBandwidth/Copy_32KB-16        	13414000	       439.4 ns/op	149135.88 MB/s
+BenchmarkMemoryBandwidth/Copy_256KB-16       	 1847124	      3222 ns/op	162737.43 MB/s
+BenchmarkMemoryBandwidth/Copy_8MB-16         	   37558	    152495 ns/op	110018.30 MB/s
+BenchmarkMemoryBandwidth/Copy_64MB-16        	    2257	   2411020 ns/op	55668.45 MB/s
+BenchmarkMemoryBandwidth/Copy_256MB-16       	     562	  10528689 ns/op	50991.24 MB/s
+BenchmarkMemoryBandwidthFused/FusedBandwidth-16         	     546	  10996140 ns/op	         1.145 GB/s
+BenchmarkMemoryBandwidthFused/UnfusedBandwidth-16       	       2	2909937431 ns/op	         0.01009 GB/s
+PASS
+ok  	github.com/LynnColeArt/guda	66.277s

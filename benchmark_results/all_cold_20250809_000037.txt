@@ -1,0 +1,59 @@
+go: downloading golang.org/x/sys v0.35.0
+goos: linux
+goarch: amd64
+pkg: github.com/LynnColeArt/guda
+cpu: AMD Ryzen 7 7700X 8-Core Processor             
+BenchmarkAXPY/N_1024-16         	99579346	        59.52 ns/op	206451.77 MB/s	         0.1667 FLOPS/byte	        34.41 GFLOPS(hot-cache)
+BenchmarkAXPY/N_16384-16        	 7420273	       808.2 ns/op	243266.12 MB/s	         0.1667 FLOPS/byte	        40.54 GFLOPS(hot-cache)
+BenchmarkAXPY/N_262144-16       	  393049	     15087 ns/op	208499.23 MB/s	         0.1667 FLOPS/byte	        34.75 GFLOPS(hot-cache)
+BenchmarkAXPY/N_1048576-16      	  102687	     59096 ns/op	212923.19 MB/s	         0.1667 FLOPS/byte	        35.49 GFLOPS(hot-cache)
+BenchmarkAXPY/N_16777216-16     	    1537	   3568670 ns/op	56415.02 MB/s	         0.1667 FLOPS/byte	         9.403 GFLOPS(hot-cache)
+PASS
+ok  	github.com/LynnColeArt/guda	31.484s
+goos: linux
+goarch: amd64
+pkg: github.com/LynnColeArt/guda
+cpu: AMD Ryzen 7 7700X 8-Core Processor             
+BenchmarkDOT/N_1024-16         	201675103	        29.52 ns/op	277485.32 MB/s	        69.37 GFLOPS(hot-cache)
+BenchmarkDOT/N_16384-16        	 7869426	       762.4 ns/op	171926.85 MB/s	        42.98 GFLOPS(hot-cache)
+BenchmarkDOT/N_262144-16       	  413050	     14523 ns/op	144406.98 MB/s	        36.10 GFLOPS(hot-cache)
+BenchmarkDOT/N_1048576-16      	  103516	     57869 ns/op	144958.18 MB/s	        36.24 GFLOPS(hot-cache)
+PASS
+ok  	github.com/LynnColeArt/guda	28.461s
+goos: linux
+goarch: amd64
+pkg: github.com/LynnColeArt/guda
+cpu: AMD Ryzen 7 7700X 8-Core Processor             
+BenchmarkFusionSpeedup/Separate_3ops-16         	    1528	   3936157 ns/op	9590.25 MB/s
+BenchmarkFusionSpeedup/Fused_3ops-16            	    2812	   2096014 ns/op	6003.26 MB/s
+PASS
+ok  	github.com/LynnColeArt/guda	12.529s
+goos: linux
+goarch: amd64
+pkg: github.com/LynnColeArt/guda
+cpu: AMD Ryzen 7 7700X 8-Core Processor             
+BenchmarkGEMMWithPerfCounters/Small_128-16         	   93006	     62280 ns/op	        21.33 FLOPS/byte	         3.157 GB/s	        67.35 GFLOPS	     16056 ops/s
+BenchmarkGEMMWithPerfCounters/Medium_512-16        	    3561	   1766878 ns/op	        85.33 FLOPS/byte	         1.780 GB/s	       151.9 GFLOPS	       566.0 ops/s
+BenchmarkGEMMWithPerfCounters/Large_1024-16        	     432	  14288348 ns/op	       170.7 FLOPS/byte	         0.8806 GB/s	       150.3 GFLOPS	        69.99 ops/s
+BenchmarkGEMM/N_128-16                             	   79675	     66755 ns/op	2945.20 MB/s	        21.33 FLOPS/byte	        62.83 GFLOPS(hot-cache)	         0 compute_bound	        62.83 efficiency_%
+BenchmarkGEMM/N_256-16                             	   22862	    268018 ns/op	2934.25 MB/s	        42.67 FLOPS/byte	       125.2 GFLOPS(hot-cache)	         0 compute_bound	       125.2 efficiency_%
+BenchmarkGEMM/N_512-16                             	    3241	   1756550 ns/op	1790.86 MB/s	        85.33 FLOPS/byte	       152.8 GFLOPS(hot-cache)	         0 compute_bound	       152.8 efficiency_%
+BenchmarkGEMM/N_1024-16                            	     426	  14055466 ns/op	 895.23 MB/s	       170.7 FLOPS/byte	       152.8 GFLOPS(hot-cache)	         0 compute_bound	       152.8 efficiency_%
+BenchmarkGEMM/N_2048-16                            	      51	 110498228 ns/op	 455.50 MB/s	       341.3 FLOPS/byte	       155.5 GFLOPS(hot-cache)	         0 compute_bound	       155.5 efficiency_%
+BenchmarkGEMM/N_4096-16                            	       6	 924317432 ns/op	 217.81 MB/s	       682.7 FLOPS/byte	       148.7 GFLOPS(hot-cache)	         0 compute_bound	       148.7 efficiency_%
+PASS
+ok  	github.com/LynnColeArt/guda	61.084s
+goos: linux
+goarch: amd64
+pkg: github.com/LynnColeArt/guda
+cpu: AMD Ryzen 7 7700X 8-Core Processor             
+BenchmarkMemoryBandwidth/Copy_1KB-16         	144058422	        41.99 ns/op	48778.80 MB/s
+BenchmarkMemoryBandwidth/Copy_32KB-16        	13414000	       439.4 ns/op	149135.88 MB/s
+BenchmarkMemoryBandwidth/Copy_256KB-16       	 1847124	      3222 ns/op	162737.43 MB/s
+BenchmarkMemoryBandwidth/Copy_8MB-16         	   37558	    152495 ns/op	110018.30 MB/s
+BenchmarkMemoryBandwidth/Copy_64MB-16        	    2257	   2411020 ns/op	55668.45 MB/s
+BenchmarkMemoryBandwidth/Copy_256MB-16       	     562	  10528689 ns/op	50991.24 MB/s
+BenchmarkMemoryBandwidthFused/FusedBandwidth-16         	     546	  10996140 ns/op	         1.145 GB/s
+BenchmarkMemoryBandwidthFused/UnfusedBandwidth-16       	       2	2909937431 ns/op	         0.01009 GB/s
+PASS
+ok  	github.com/LynnColeArt/guda	66.277s

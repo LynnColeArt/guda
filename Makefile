@@ -19,29 +19,28 @@ benchmark:
 	go test -bench=. -benchmem -json ./... | tee benchmark_logs/benchmark_$(shell date +%Y%m%d_%H%M%S).json || true
 	@echo "\nBenchmark results saved to benchmark_logs/"
 
-# Run benchmarks with cold cache (SAFER VERSION)
+# Run benchmarks with cold cache (requires sudo)
 bench-cold:
-	@echo "========================================"
-	@echo "COLD CACHE BENCHMARK - SAFETY WARNING"
-	@echo "========================================"
-	@echo "This benchmark attempts to simulate cold cache by:"
-	@echo "1. Running a memory-intensive task to flush caches"
-	@echo "2. Running benchmarks immediately after"
-	@echo ""
-	@echo "For true cold cache testing with system cache clearing:"
-	@echo "  sudo sh -c 'sync && echo 1 > /proc/sys/vm/drop_caches'  # Safer: page cache only"
-	@echo "  # Then immediately run: go test -bench=. -benchmem ./..."
-	@echo ""
-	@echo "WARNING: Cache dropping can cause system instability!"
-	@echo "========================================"
-	@echo ""
-	@echo "Running safer cold-cache simulation..."
-	@mkdir -p benchmark_logs
-	@# Allocate and touch large memory to flush caches
-	go run ./cmd/cache_flush/...
-	@# Run benchmarks immediately
-	go test -bench=. -benchmem -benchtime=1s -run=^$$ -json ./... | tee benchmark_logs/benchmark_cold_$(shell date +%Y%m%d_%H%M%S).json || true
-	@echo "\nCold cache benchmark results saved to benchmark_logs/"
+	@if [ "$$(id -u)" -ne 0 ]; then \
+		echo "Cold cache benchmarks require sudo privileges."; \
+		echo "Run: sudo make bench-cold"; \
+		echo ""; \
+		echo "Or use the script directly:"; \
+		echo "  sudo ./scripts/bench_cold.sh"; \
+		exit 1; \
+	fi
+	@./scripts/bench_cold.sh
+
+# Compare hot vs cold cache results
+bench-compare:
+	@if [ ! -f "$(HOT)" ] || [ ! -f "$(COLD)" ]; then \
+		echo "Usage: make bench-compare HOT=hot_results.txt COLD=cold_results.txt"; \
+		echo ""; \
+		echo "Example:"; \
+		echo "  make bench-compare HOT=gemm_hot_results.txt COLD=benchmark_results/gemm_cold_*.txt"; \
+		exit 1; \
+	fi
+	@python3 scripts/compare_benchmarks.py "$(HOT)" "$(COLD)"
 
 # Capture baseline before optimization
 baseline:
@@ -126,7 +125,8 @@ help:
 	@echo "GUDA Makefile targets:"
 	@echo "  make test          - Run all tests"
 	@echo "  make benchmark     - Run all benchmarks (with logging)"
-	@echo "  make bench-cold    - Run benchmarks with cold cache (safer version)"
+	@echo "  make bench-cold    - Run benchmarks with cold cache (requires sudo)"
+	@echo "  make bench-compare - Compare hot vs cold cache results"
 	@echo "  make bench-summary - View latest benchmark results"
 	@echo "  make baseline      - Capture performance baseline"
 	@echo "  make compare       - Compare against baseline"

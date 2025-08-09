@@ -47,8 +47,9 @@ func BenchmarkAXPY(b *testing.B) {
 			alpha := float32(2.5)
 			
 			b.SetBytes(int64(3 * N * 4)) // Read X, Read Y, Write Y
-			b.ResetTimer()
 			
+			// Run benchmark
+			b.ResetTimer()
 			for i := 0; i < b.N; i++ {
 				AXPY(alpha, d_X, d_Y, N)
 				Synchronize()
@@ -59,6 +60,10 @@ func BenchmarkAXPY(b *testing.B) {
 			timePerOp := b.Elapsed().Seconds() / float64(b.N)
 			gflopsPerOp := flops / timePerOp / 1e9
 			b.ReportMetric(gflopsPerOp, "GFLOPS(hot-cache)")
+			
+			// Report arithmetic intensity
+			arithmeticIntensity := flops / float64(3*N*4) // FLOPS per byte
+			b.ReportMetric(arithmeticIntensity, "FLOPS/byte")
 		})
 	}
 }
@@ -103,9 +108,18 @@ func BenchmarkGEMM(b *testing.B) {
 			defer Free(d_B)
 			defer Free(d_C)
 			
-			b.SetBytes(int64(3 * N * N * 4)) // Simplified
-			b.ResetTimer()
+			// Initialize with test data for consistent results
+			for i := range d_A.Float32() {
+				d_A.Float32()[i] = 1.0
+			}
+			for i := range d_B.Float32() {
+				d_B.Float32()[i] = 1.0
+			}
 			
+			b.SetBytes(int64(3 * N * N * 4)) // Simplified
+			
+			// Run benchmark
+			b.ResetTimer()
 			for i := 0; i < b.N; i++ {
 				GEMM(false, false, N, N, N, 1.0, d_A, N, d_B, N, 0.0, d_C, N)
 				Synchronize()
@@ -125,6 +139,20 @@ func BenchmarkGEMM(b *testing.B) {
 			practicalPeak := 100.0
 			efficiency := gflopsPerOp / practicalPeak * 100
 			b.ReportMetric(efficiency, "efficiency_%")
+			
+			// Report arithmetic intensity
+			bytes := float64(3 * N * N * 4)
+			arithmeticIntensity := flops / bytes
+			b.ReportMetric(arithmeticIntensity, "FLOPS/byte")
+			
+			// Roofline analysis
+			peakBandwidth := 50.0 // GB/s typical DDR4
+			memoryBound := peakBandwidth * arithmeticIntensity
+			if memoryBound < gflopsPerOp {
+				b.ReportMetric(1.0, "memory_bound")
+			} else {
+				b.ReportMetric(0.0, "compute_bound")
+			}
 		})
 	}
 }
@@ -222,7 +250,7 @@ func BenchmarkParallelScaling(b *testing.B) {
 		}
 		
 		b.Run(fmt.Sprintf("GridSize_%d", gridSize), func(b *testing.B) {
-			actualWork := min(gridSize*blockSize, N)
+			actualWork := minInt(gridSize*blockSize, N)
 			b.SetBytes(int64(3 * actualWork * 4))
 			
 			kernel := KernelFunc(func(tid ThreadID, args ...interface{}) {
@@ -260,4 +288,12 @@ func formatBytes(bytes int) string {
 		exp++
 	}
 	return fmt.Sprintf("%d%cB", bytes/int(div), "KMGTPE"[exp])
+}
+
+// minInt returns the minimum of two ints
+func minInt(a, b int) int {
+	if a < b {
+		return a
+	}
+	return b
 }

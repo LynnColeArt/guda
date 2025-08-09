@@ -1,0 +1,3 @@
+# .
+no Go files in /media/lynn/big_drive/workspaces/Guda/scripts
+FAIL	. [setup failed]
