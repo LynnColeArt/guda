@@ -179,9 +179,37 @@ func (a *AMXFFU) Execute(workload ffu.Workload) error {
 
 // executeInt8 performs INT8 matrix multiplication using AMX
 func (a *AMXFFU) executeInt8(w *ffu.AMXWorkload) error {
-	// For now, use a reference implementation
-	// Real implementation would use AMX assembly instructions
+	// Check if we have real AMX support
+	if amxCheckSupport() && a.hasInt8 {
+		// Use AMX kernel
+		kernel := NewAMXKernel()
+		defer kernel.Release()
+		
+		// Convert byte slices to int8 for the kernel
+		aInt8 := (*[1 << 30]int8)(unsafe.Pointer(&w.A[0]))[:w.M*w.K]
+		bInt8 := (*[1 << 30]int8)(unsafe.Pointer(&w.B[0]))[:w.K*w.N]
+		cInt32 := (*[1 << 30]int32)(unsafe.Pointer(&w.C[0]))[:w.M*w.N]
+		
+		// Clear C matrix
+		for i := range cInt32 {
+			cInt32[i] = 0
+		}
+		
+		// Convert []int8 to []byte for assembly
+		aBytes := (*[1 << 30]byte)(unsafe.Pointer(&aInt8[0]))[:len(aInt8)]
+		bBytes := (*[1 << 30]byte)(unsafe.Pointer(&bInt8[0]))[:len(bInt8)]
+		
+		// Execute AMX kernel
+		return kernel.Int8GEMM(w.M, w.N, w.K, aBytes, bBytes, cInt32, 
+			w.ScaleA*w.ScaleB*w.ScaleC, 0.0)
+	}
 	
+	// Fallback to reference implementation
+	return a.executeInt8Reference(w)
+}
+
+// executeInt8Reference is the reference implementation
+func (a *AMXFFU) executeInt8Reference(w *ffu.AMXWorkload) error {
 	// INT8 matrix multiply: C = alpha * A * B
 	// A is M×K, B is K×N, C is M×N
 	// Result is INT32 that needs scaling
