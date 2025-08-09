@@ -137,7 +137,7 @@ func Conv2DFloat16SIMD(
 // LayerNormFloat16SIMD performs layer normalization with float16 (generic)
 func LayerNormFloat16SIMD(input, gamma, beta, output DevicePtr, n, hidden int) error {
 	grid := Dim3{X: n, Y: 1, Z: 1}
-	block := Dim3{X: min(256, hidden), Y: 1, Z: 1}
+	block := Dim3{X: min(DefaultBlockSize, hidden), Y: 1, Z: 1}
 	
 	return Launch(KernelFunc(func(tid ThreadID, args ...interface{}) {
 		batch := tid.BlockIdx.X

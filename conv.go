@@ -1,8 +1,6 @@
 package guda
 
 import (
-	"fmt"
-	
 	"github.com/LynnColeArt/guda/compute"
 	"github.com/LynnColeArt/guda/compute/blas"
 )
@@ -35,19 +33,19 @@ type ConvParams struct {
 // Validate checks if convolution parameters are valid
 func (p *ConvParams) Validate() error {
 	if p.BatchSize <= 0 || p.InChannels <= 0 || p.InHeight <= 0 || p.InWidth <= 0 {
-		return fmt.Errorf("invalid input dimensions")
+		return NewInvalidArgError("Conv2D", "invalid input dimensions: batch, channels, height and width must be positive")
 	}
 	if p.OutChannels <= 0 || p.KernelHeight <= 0 || p.KernelWidth <= 0 {
-		return fmt.Errorf("invalid kernel dimensions")
+		return NewInvalidArgError("Conv2D", "invalid kernel dimensions: output channels and kernel size must be positive")
 	}
 	if p.StrideH <= 0 || p.StrideW <= 0 {
-		return fmt.Errorf("invalid stride")
+		return NewInvalidArgError("Conv2D", "invalid stride: stride must be positive")
 	}
 	if p.DilationH <= 0 || p.DilationW <= 0 {
-		return fmt.Errorf("invalid dilation")
+		return NewInvalidArgError("Conv2D", "invalid dilation: dilation must be positive")
 	}
 	if p.PadH < 0 || p.PadW < 0 {
-		return fmt.Errorf("invalid padding")
+		return NewInvalidArgError("Conv2D", "invalid padding: padding cannot be negative")
 	}
 	return nil
 }
@@ -91,7 +89,7 @@ func conv2DIm2col(input, kernel, bias, output DevicePtr, params *ConvParams, out
 	workspaceSize := params.BatchSize * colHeight * colWidth * 4 // float32
 	workspace, err := Malloc(workspaceSize)
 	if err != nil {
-		return fmt.Errorf("failed to allocate workspace: %w", err)
+		return NewMemoryError("Conv2D", "failed to allocate workspace", err)
 	}
 	defer Free(workspace)
 	

@@ -196,8 +196,8 @@ func executeReduction(
 //       *val = float32(idx) * 2.0
 //   })
 func ForEach(data DevicePtr, size int, fn func(idx int, val *float32)) error {
-	grid := Dim3{X: (size + 255) / 256, Y: 1, Z: 1}
-	block := Dim3{X: 256, Y: 1, Z: 1}
+	grid := Dim3{X: (size + DefaultBlockSize - 1) / DefaultBlockSize, Y: 1, Z: 1}
+	block := Dim3{X: DefaultBlockSize, Y: 1, Z: 1}
 	
 	kernel := KernelFunc(func(tid ThreadID, args ...interface{}) {
 		idx := tid.Global()
@@ -226,8 +226,8 @@ func ForEach(data DevicePtr, size int, fn func(idx int, val *float32)) error {
 //       return x * x // Square each element
 //   })
 func Map(input, output DevicePtr, size int, fn func(float32) float32) error {
-	grid := Dim3{X: (size + 255) / 256, Y: 1, Z: 1}
-	block := Dim3{X: 256, Y: 1, Z: 1}
+	grid := Dim3{X: (size + DefaultBlockSize - 1) / DefaultBlockSize, Y: 1, Z: 1}
+	block := Dim3{X: DefaultBlockSize, Y: 1, Z: 1}
 	
 	kernel := KernelFunc(func(tid ThreadID, args ...interface{}) {
 		idx := tid.Global()

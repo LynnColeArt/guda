@@ -59,6 +59,9 @@ const (
 	
 	// Unroll factor for loops
 	LoopUnrollFactor = 4
+	
+	// Generic tiling size for blocked algorithms
+	DefaultTileSize = 64
 )
 
 // Convolution parameters
@@ -77,4 +80,16 @@ const (
 	
 	// Maximum ULP difference for float32 comparisons
 	MaxULPDiff = 4
+)
+
+// GEMM micro-kernel parameters
+const (
+	// Micro-kernel dimensions for AVX2 (8x8 blocks)
+	GEMMMicroKernelM = 8
+	GEMMMicroKernelN = 8
+	
+	// Float16 GEMM tile sizes (optimized for F16C+AVX2)
+	Float16TileM = 6   // 6x16 register blocking
+	Float16TileN = 16  // Process 16 columns at once
+	Float16TileK = 8   // Process 8 K elements with F16C
 )

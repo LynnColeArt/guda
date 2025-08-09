@@ -130,8 +130,8 @@ func (d DevicePtr) Float16() Float16Slice {
 
 // AddFloat16 performs element-wise addition on Float16 arrays
 func AddFloat16(a, b, c DevicePtr, n int) error {
-	grid := Dim3{X: (n + 255) / 256, Y: 1, Z: 1}
-	block := Dim3{X: 256, Y: 1, Z: 1}
+	grid := Dim3{X: (n + DefaultBlockSize - 1) / DefaultBlockSize, Y: 1, Z: 1}
+	block := Dim3{X: DefaultBlockSize, Y: 1, Z: 1}
 	
 	kernel := KernelFunc(func(tid ThreadID, args ...interface{}) {
 		idx := tid.Global()
@@ -153,8 +153,8 @@ func AddFloat16(a, b, c DevicePtr, n int) error {
 
 // MultiplyFloat16 performs element-wise multiplication on Float16 arrays
 func MultiplyFloat16(a, b, c DevicePtr, n int) error {
-	grid := Dim3{X: (n + 255) / 256, Y: 1, Z: 1}
-	block := Dim3{X: 256, Y: 1, Z: 1}
+	grid := Dim3{X: (n + DefaultBlockSize - 1) / DefaultBlockSize, Y: 1, Z: 1}
+	block := Dim3{X: DefaultBlockSize, Y: 1, Z: 1}
 	
 	kernel := KernelFunc(func(tid ThreadID, args ...interface{}) {
 		idx := tid.Global()
@@ -179,8 +179,8 @@ func LinearFloat16(x DevicePtr, alpha, beta float32, n int) error {
 	alphaF16 := FromFloat32(alpha)
 	betaF16 := FromFloat32(beta)
 	
-	grid := Dim3{X: (n + 255) / 256, Y: 1, Z: 1}
-	block := Dim3{X: 256, Y: 1, Z: 1}
+	grid := Dim3{X: (n + DefaultBlockSize - 1) / DefaultBlockSize, Y: 1, Z: 1}
+	block := Dim3{X: DefaultBlockSize, Y: 1, Z: 1}
 	
 	kernel := KernelFunc(func(tid ThreadID, args ...interface{}) {
 		idx := tid.Global()

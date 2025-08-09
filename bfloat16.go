@@ -79,8 +79,8 @@ func (d DevicePtr) BFloat16() BFloat16Slice {
 
 // AddBFloat16 performs element-wise addition on BFloat16 arrays
 func AddBFloat16(a, b, c DevicePtr, n int) error {
-	grid := Dim3{X: (n + 255) / 256, Y: 1, Z: 1}
-	block := Dim3{X: 256, Y: 1, Z: 1}
+	grid := Dim3{X: (n + DefaultBlockSize - 1) / DefaultBlockSize, Y: 1, Z: 1}
+	block := Dim3{X: DefaultBlockSize, Y: 1, Z: 1}
 	
 	kernel := KernelFunc(func(tid ThreadID, args ...interface{}) {
 		idx := tid.Global()
@@ -188,8 +188,8 @@ func MixedPrecisionLinear(x, weights, bias, output DevicePtr,
 	}
 	
 	// Add bias
-	grid := Dim3{X: (batchSize*outputDim + 255) / 256, Y: 1, Z: 1}
-	block := Dim3{X: 256, Y: 1, Z: 1}
+	grid := Dim3{X: (batchSize*outputDim + DefaultBlockSize - 1) / DefaultBlockSize, Y: 1, Z: 1}
+	block := Dim3{X: DefaultBlockSize, Y: 1, Z: 1}
 	
 	kernel := KernelFunc(func(tid ThreadID, args ...interface{}) {
 		idx := tid.Global()

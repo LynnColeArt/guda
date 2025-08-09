@@ -132,8 +132,8 @@ func GEMM(transA, transB bool, m, n, k int, alpha float32,
 
 // Add performs element-wise addition: c = a + b
 func Add(a, b, c DevicePtr, n int) error {
-	grid := Dim3{X: (n + 255) / 256, Y: 1, Z: 1}
-	block := Dim3{X: 256, Y: 1, Z: 1}
+	grid := Dim3{X: (n + DefaultBlockSize - 1) / DefaultBlockSize, Y: 1, Z: 1}
+	block := Dim3{X: DefaultBlockSize, Y: 1, Z: 1}
 	
 	kernel := KernelFunc(func(tid ThreadID, args ...interface{}) {
 		idx := tid.Global()
@@ -150,8 +150,8 @@ func Add(a, b, c DevicePtr, n int) error {
 
 // Multiply performs element-wise multiplication: c = a * b
 func Multiply(a, b, c DevicePtr, n int) error {
-	grid := Dim3{X: (n + 255) / 256, Y: 1, Z: 1}
-	block := Dim3{X: 256, Y: 1, Z: 1}
+	grid := Dim3{X: (n + DefaultBlockSize - 1) / DefaultBlockSize, Y: 1, Z: 1}
+	block := Dim3{X: DefaultBlockSize, Y: 1, Z: 1}
 	
 	kernel := KernelFunc(func(tid ThreadID, args ...interface{}) {
 		idx := tid.Global()
@@ -237,8 +237,8 @@ func Min(x DevicePtr, n int) (float32, error) {
 
 // ReLU applies the ReLU activation function: x = max(0, x)
 func ReLU(x DevicePtr, n int) error {
-	grid := Dim3{X: (n + 255) / 256, Y: 1, Z: 1}
-	block := Dim3{X: 256, Y: 1, Z: 1}
+	grid := Dim3{X: (n + DefaultBlockSize - 1) / DefaultBlockSize, Y: 1, Z: 1}
+	block := Dim3{X: DefaultBlockSize, Y: 1, Z: 1}
 	
 	kernel := KernelFunc(func(tid ThreadID, args ...interface{}) {
 		idx := tid.Global()
@@ -255,8 +255,8 @@ func ReLU(x DevicePtr, n int) error {
 
 // Sigmoid applies the sigmoid activation function
 func Sigmoid(x DevicePtr, n int) error {
-	grid := Dim3{X: (n + 255) / 256, Y: 1, Z: 1}
-	block := Dim3{X: 256, Y: 1, Z: 1}
+	grid := Dim3{X: (n + DefaultBlockSize - 1) / DefaultBlockSize, Y: 1, Z: 1}
+	block := Dim3{X: DefaultBlockSize, Y: 1, Z: 1}
 	
 	kernel := KernelFunc(func(tid ThreadID, args ...interface{}) {
 		idx := tid.Global()
