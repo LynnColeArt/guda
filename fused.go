@@ -1,6 +1,8 @@
 package guda
 
 import (
+	"math"
+	
 	"github.com/LynnColeArt/guda/blas"
 	"github.com/LynnColeArt/guda/blas/blas32"
 	"github.com/LynnColeArt/guda/compute/asm/f32"
@@ -278,7 +280,7 @@ func LayerNorm(x DevicePtr, gamma, beta DevicePtr, n int, eps float32) error {
 	
 	mean := sum / float32(n)
 	variance := sumSq/float32(n) - mean*mean
-	invStd := 1.0 / (variance + eps)
+	invStd := 1.0 / float32(math.Sqrt(float64(variance + eps)))
 	
 	// Second pass: normalize and apply gamma/beta
 	grid := Dim3{X: (n + DefaultBlockSize - 1) / DefaultBlockSize, Y: 1, Z: 1}
