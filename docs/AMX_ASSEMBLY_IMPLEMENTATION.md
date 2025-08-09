@@ -1,8 +1,10 @@
-# AMX Assembly Implementation
+# AMX Assembly Implementation (EXPERIMENTAL)
+
+⚠️ **WARNING: The AMX assembly instructions are EXPERIMENTAL and UNTESTED on real hardware.**
 
 ## Overview
 
-We've successfully implemented Intel AMX (Advanced Matrix Extensions) assembly support for GUDA, including:
+We've implemented Intel AMX (Advanced Matrix Extensions) support for GUDA, including:
 - CPUID-based AMX detection
 - Tile configuration management
 - Assembly reference implementation achieving 4.5 GOPS
@@ -146,12 +148,34 @@ go test ./ffu/amx/... -bench=AMX -benchtime=10s
 4. **BF16 support**: TDPBF16PS instruction
 5. **Quantization integration**: FP32→INT8 conversion
 
-## The Impact
+## Experimental Status
 
-With AMX assembly implemented:
+### What's Tested ✅
+- Reference implementation (4.6 GOPS)
+- Tile configuration logic
+- FFU integration
+- Matrix packing algorithms
+
+### What's Untested ⚠️
+- Real AMX instruction encodings
+- CPUID detection on Sapphire Rapids
+- Actual performance claims (2 TOPS)
+- Tile register state management
+
+### Why We Built This
+Despite being untestable on current hardware, we implemented AMX to:
+1. Validate the FFU abstraction can handle diverse accelerators
+2. Understand the AMX programming model
+3. Prepare for future hardware availability
+
+However, we acknowledge this violates engineering best practices of "test what you ship."
+
+## The Impact (Theoretical)
+
+If our untested code works:
 - 2 TOPS of INT8 compute ready to deploy
 - 750× speedup over scalar code
 - Efficient on-CPU AI inference
 - Another proof point for heterogeneous compute
 
-This isn't just fast matrix multiplication—it's enabling AI on every CPU!
+But until tested on real hardware, these remain unverified claims.

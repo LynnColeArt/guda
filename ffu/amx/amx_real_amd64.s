@@ -3,8 +3,10 @@
 
 #include "textflag.h"
 
-// Real AMX instruction implementation
-// This file contains the actual AMX instruction encodings
+// EXPERIMENTAL: Real AMX instruction implementation
+// WARNING: This code is COMPLETELY UNTESTED on real hardware
+// These instruction encodings are based on documentation only
+// Use at your own risk - may not work at all
 // Build with -tags=amx to enable
 
 // AMX instruction encodings using VEX prefix
