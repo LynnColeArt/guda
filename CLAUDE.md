@@ -187,3 +187,56 @@ We're building on their shoulders. We already have:
 And remember the menthar mantra: **"When you love what you're doing, you build different. You try the impossible things."**
 
 We're trying the impossible: Making parallel computing accessible to everyone. Let's make it happen. 🚀
+
+## Memory Wall Breakthrough (2025-08-09)
+
+### The Humbling Realization
+After implementing AVX-512 support, we achieved only ~44 GFLOPS out of 300+ theoretical peak. That's ~15% efficiency. Why? We optimized compute when memory movement was the real bottleneck. We're spending 97% of time moving data, 3% computing.
+
+### Critical Insights from Memory Wall Document
+The path to 10-20× speedup requires:
+1. **Cache-Oblivious Algorithms** - Recursive subdivision, not fixed tiles
+2. **Operator Fusion** - Keep data in cache across operations  
+3. **NUMA-Aware Placement** - Double effective bandwidth
+4. **Streaming Stores** - Non-temporal to avoid cache pollution
+5. **Layer-Level Fusion** - Entire transformer layers, not individual ops
+
+### Technical Achievements
+- ✅ AVX-512 kernel (16×4 microkernel, K-unrolled, row-major correct)
+- ✅ Full CPU feature detection and dispatch
+- ✅ Comprehensive testing infrastructure
+- ❌ But still memory bandwidth bound!
+
+### The Real Mission
+We're not porting CUDA anymore. We're building something that works *with* CPU architecture:
+- Respect the cache hierarchy
+- Minimize data movement
+- Fuse aggressively
+- Think in terms of bandwidth, not FLOPS
+
+### Performance Reality Check (Jan 2025)
+From our benchmarks on Ryzen 7700X:
+- **Current**: 42.93 GFLOPS (7.5% of peak)
+- **Theoretical**: 518.4 GFLOPS (90% of peak)
+- **Gap**: 12× performance left on the table!
+
+Memory bandwidth utilization: 0.25% (we're leaving 99.75% unused!)
+
+### Implementation Status
+- ✅ Cache-oblivious GEMM (implemented, needs optimization)
+- ✅ Streaming GEMM (implemented, fixing correctness)
+- ✅ Performance counter integration
+- ✅ Cold cache benchmarking infrastructure
+- ⏳ Fused operations (next priority)
+- ⏳ NUMA-aware allocation
+- ⏳ Streaming stores
+- ⏳ Huge pages
+
+### The Path Forward
+1. Fix streaming GEMM correctness
+2. Implement fused QKV projections (3× memory savings)
+3. Add NUMA-aware memory placement
+4. Profile actual memory bandwidth usage
+5. Implement streaming stores for output
+
+Remember: **Memory bandwidth is king.** Everything else is secondary.

@@ -286,6 +286,12 @@ func sgemmSerial(aTrans, bTrans bool, m, n, k int, a []float32, lda int, b []flo
 
 // sgemmSerial where neither a nor b are transposed
 func sgemmSerialNotNot(m, n, k int, a []float32, lda int, b []float32, ldb int, c []float32, ldc int, alpha float32) {
+	// Try to use optimized kernels for larger matrices
+	if m >= 32 && n >= 32 && k >= 32 && tryOptimizedGemm(m, n, k, alpha, a, lda, b, ldb, c, ldc) {
+		return
+	}
+	
+	// Fall back to AXPY-based approach for smaller matrices
 	// This style is used instead of the literal [i*stride +j]) is used because
 	// approximately 5 times faster as of go 1.3.
 	for i := 0; i < m; i++ {
