@@ -14,17 +14,17 @@ We've successfully implemented AVX512-VNNI (Vector Neural Network Instructions) 
 
 ### 2. Detection (`ffu/vnni/detect_amd64.go`)
 - Runtime capability checking via golang.org/x/sys/cpu
-- Your AMD Ryzen 7 7700X has VNNI! ✅
+- AMD Ryzen 7 7700X has AVX512-VNNI! ✅
 - Also detects AVX512-BF16 support ✅
 
 ### 3. Performance Results
 
 | Implementation | Performance | Speedup | Notes |
 |----------------|-------------|---------|-------|
-| Scalar Go | 2.1 GOPS | 1.0x | Baseline |
-| Assembly Reference | 4.6 GOPS | 2.2x | Optimized loops |
-| VNNI FFU | 4.6 GOPS | 2.2x | Current implementation |
-| **Real VNNI** | **300 GOPS** | **140x** | Expected with VPDPBUSD |
+| Scalar Go | 2.14 GOPS | 1.0x | Baseline |
+| Assembly Reference | 4.62 GOPS | 2.2x | Optimized loops |
+| VNNI FFU | 4.61 GOPS | 2.2x | Current implementation |
+| **Real VNNI** | **300 GOPS** | **140x** | Requires EVEX encoding |
 
 ### 4. Key Advantages Over AMX
 

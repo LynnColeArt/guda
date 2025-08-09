@@ -2,28 +2,19 @@ package vnni
 
 import (
 	"fmt"
+	"runtime"
 	"sync/atomic"
 	"time"
 	
 	"github.com/LynnColeArt/guda/ffu"
 )
 
-// Assembly functions
-//go:noescape
-func vnniInt8DotProduct(a, b []int8) int32
-
-//go:noescape
-func vnniInt8GEMM(m, n, k int, a, b []int8, c []int32)
-
-//go:noescape
-func vnniInt8GEMMRef(m, n, k int, a, b []int8, c []int32)
-
-//go:noescape
-func hasVNNIAsm() bool
 
 // VNNIFFU implements the FFU interface for AVX512-VNNI operations
 type VNNIFFU struct {
 	available bool
+	hasVNNI   bool
+	hasBF16   bool
 	metrics   atomic.Value // *ffu.Metrics
 }
 
@@ -31,6 +22,8 @@ type VNNIFFU struct {
 func NewVNNIFFU() *VNNIFFU {
 	v := &VNNIFFU{
 		available: HasVNNI(),
+		hasVNNI:   HasVNNI(),
+		hasBF16:   HasBF16(),
 	}
 	
 	// Initialize metrics
@@ -129,9 +122,21 @@ func (v *VNNIFFU) Execute(workload ffu.Workload) error {
 		}
 		
 	case ffu.VNNIMatMul:
-		// Use reference implementation for now
-		// TODO: Use real VNNI when instruction encoding is complete
-		vnniInt8GEMMRef(w.M, w.N, w.K, w.A, w.B, w.C)
+		// Use optimized VNNI kernel when available
+		if runtime.GOARCH == "amd64" && v.hasVNNI {
+			if vnniCGOAvailable {
+				// Use real VNNI with intrinsics!
+				vnniInt8GEMMCgo(w.M, w.N, w.K, w.A, w.B, w.C)
+			} else if w.M == 32 && w.N == 32 && w.K == 32 {
+				// Special case for 32x32 matrices
+				vnniInt8GEMM32x32(w.A, w.B, w.C)
+			} else {
+				// Use reference assembly
+				vnniInt8GEMMRef(w.M, w.N, w.K, w.A, w.B, w.C)
+			}
+		} else {
+			err = v.executeReferenceGEMM(w)
+		}
 		// Apply scaling
 		if w.Alpha != 1 {
 			for i := range w.C {

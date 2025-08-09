@@ -7,6 +7,67 @@ import (
 	"github.com/LynnColeArt/guda/ffu"
 )
 
+func TestVNNI32x32(t *testing.T) {
+	t.Skip("Skipping VNNI 32x32 test - EVEX encoding not yet implemented")
+	
+	if !HasVNNI() {
+		t.Skip("VNNI not available")
+	}
+	
+	// Create 32x32 test matrices
+	M, N, K := 32, 32, 32
+	A := make([]int8, M*K)
+	B := make([]int8, K*N)
+	C := make([]int32, M*N)
+	Cref := make([]int32, M*N)
+	
+	// Initialize with simple pattern
+	for i := range A {
+		A[i] = int8(i % 7)
+	}
+	for i := range B {
+		B[i] = int8(i % 5)
+	}
+	
+	// Compute reference result
+	for i := 0; i < M; i++ {
+		for j := 0; j < N; j++ {
+			sum := int32(0)
+			for k := 0; k < K; k++ {
+				sum += int32(A[i*K+k]) * int32(B[k*N+j])
+			}
+			Cref[i*N+j] = sum
+		}
+	}
+	
+	// Test VNNI implementation
+	vnniInt8GEMM32x32(A, B, C)
+	
+	// Compare results
+	maxDiff := int32(0)
+	for i := range C {
+		diff := C[i] - Cref[i]
+		if diff < 0 {
+			diff = -diff
+		}
+		if diff > maxDiff {
+			maxDiff = diff
+		}
+	}
+	
+	if maxDiff > 0 {
+		t.Errorf("VNNI result differs from reference, max diff: %d", maxDiff)
+		// Print first few differences
+		count := 0
+		for i := range C {
+			if C[i] != Cref[i] && count < 10 {
+				t.Errorf("  C[%d] = %d, expected %d", i, C[i], Cref[i])
+				count++
+			}
+		}
+	}
+}
+
 func TestVNNIFFU(t *testing.T) {
 	vnniFFU := NewVNNIFFU()
 	

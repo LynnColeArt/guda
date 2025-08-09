@@ -1,5 +1,5 @@
-//go:build amd64
-// +build amd64
+//go:build amd64 && !cgo
+// +build amd64,!cgo
 
 #include "textflag.h"
 
