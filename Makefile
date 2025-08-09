@@ -15,7 +15,33 @@ test-race:
 
 # Run benchmarks
 benchmark:
-	go test -bench=. -benchmem ./...
+	@mkdir -p benchmark_logs
+	go test -bench=. -benchmem -json ./... | tee benchmark_logs/benchmark_$(shell date +%Y%m%d_%H%M%S).json || true
+	@echo "\nBenchmark results saved to benchmark_logs/"
+
+# Run benchmarks with cold cache (SAFER VERSION)
+bench-cold:
+	@echo "========================================"
+	@echo "COLD CACHE BENCHMARK - SAFETY WARNING"
+	@echo "========================================"
+	@echo "This benchmark attempts to simulate cold cache by:"
+	@echo "1. Running a memory-intensive task to flush caches"
+	@echo "2. Running benchmarks immediately after"
+	@echo ""
+	@echo "For true cold cache testing with system cache clearing:"
+	@echo "  sudo sh -c 'sync && echo 1 > /proc/sys/vm/drop_caches'  # Safer: page cache only"
+	@echo "  # Then immediately run: go test -bench=. -benchmem ./..."
+	@echo ""
+	@echo "WARNING: Cache dropping can cause system instability!"
+	@echo "========================================"
+	@echo ""
+	@echo "Running safer cold-cache simulation..."
+	@mkdir -p benchmark_logs
+	@# Allocate and touch large memory to flush caches
+	go run ./cmd/cache_flush/...
+	@# Run benchmarks immediately
+	go test -bench=. -benchmem -benchtime=1s -run=^$$ -json ./... | tee benchmark_logs/benchmark_cold_$(shell date +%Y%m%d_%H%M%S).json || true
+	@echo "\nCold cache benchmark results saved to benchmark_logs/"
 
 # Capture baseline before optimization
 baseline:
@@ -87,11 +113,21 @@ asm-dump:
 pre-commit: fmt test benchmark-avx2
 	@echo "✅ All pre-commit checks passed!"
 
+# View benchmark results
+bench-summary:
+	@if [ -d benchmark_logs ] && [ "$$(ls -A benchmark_logs)" ]; then \
+		go run ./cmd/bench-parser/main.go -file $$(ls -t benchmark_logs/*.json | head -1); \
+	else \
+		echo "No benchmark logs found. Run 'make benchmark' first."; \
+	fi
+
 # Help target
 help:
 	@echo "GUDA Makefile targets:"
 	@echo "  make test          - Run all tests"
-	@echo "  make benchmark     - Run all benchmarks"
+	@echo "  make benchmark     - Run all benchmarks (with logging)"
+	@echo "  make bench-cold    - Run benchmarks with cold cache (safer version)"
+	@echo "  make bench-summary - View latest benchmark results"
 	@echo "  make baseline      - Capture performance baseline"
 	@echo "  make compare       - Compare against baseline"
 	@echo "  make profile       - CPU profiling"

@@ -85,14 +85,21 @@ func linearTo3D(linear int, dim Dim3) Dim3 {
 	return Dim3{X: x, Y: y, Z: z}
 }
 
-// WorkerPool manages a pool of worker goroutines for kernel execution
+// WorkerPool manages a pool of worker goroutines for kernel execution.
+// It provides efficient task distribution and execution across CPU cores.
 type WorkerPool struct {
 	workers int
 	tasks   chan func()
 	wg      sync.WaitGroup
 }
 
-// NewWorkerPool creates a new worker pool
+// NewWorkerPool creates a new worker pool with the specified number of workers.
+// If workers <= 0, it defaults to runtime.NumCPU().
+// The pool starts workers immediately and is ready to accept tasks.
+//
+// Example:
+//   pool := guda.NewWorkerPool(8) // 8 worker threads
+//   defer pool.Close()
 func NewWorkerPool(workers int) *WorkerPool {
 	if workers <= 0 {
 		workers = runtime.NumCPU()
@@ -175,7 +182,19 @@ func executeReduction(
 
 // Helper functions for common patterns
 
-// ForEach applies a function to each element in parallel
+// ForEach applies a function to each element in parallel.
+// This is a convenience function for element-wise operations.
+//
+// Parameters:
+//   - data: DevicePtr to the data array
+//   - size: Number of elements to process
+//   - fn: Function to apply to each element (receives index and pointer)
+//
+// Example:
+//   d_data, _ := guda.Malloc(1024 * 4)
+//   guda.ForEach(d_data, 1024, func(idx int, val *float32) {
+//       *val = float32(idx) * 2.0
+//   })
 func ForEach(data DevicePtr, size int, fn func(idx int, val *float32)) error {
 	grid := Dim3{X: (size + 255) / 256, Y: 1, Z: 1}
 	block := Dim3{X: 256, Y: 1, Z: 1}
@@ -191,7 +210,21 @@ func ForEach(data DevicePtr, size int, fn func(idx int, val *float32)) error {
 	return Launch(kernel, grid, block, data, size)
 }
 
-// Map applies a transformation function to create a new array
+// Map applies a transformation function to create a new array.
+// Each element of the input is transformed and stored in the output.
+//
+// Parameters:
+//   - input: Source data array
+//   - output: Destination data array
+//   - size: Number of elements to process
+//   - fn: Transformation function
+//
+// Example:
+//   d_input, _ := guda.Malloc(1024 * 4)
+//   d_output, _ := guda.Malloc(1024 * 4)
+//   guda.Map(d_input, d_output, 1024, func(x float32) float32 {
+//       return x * x // Square each element
+//   })
 func Map(input, output DevicePtr, size int, fn func(float32) float32) error {
 	grid := Dim3{X: (size + 255) / 256, Y: 1, Z: 1}
 	block := Dim3{X: 256, Y: 1, Z: 1}
@@ -208,7 +241,21 @@ func Map(input, output DevicePtr, size int, fn func(float32) float32) error {
 	return Launch(kernel, grid, block, input, output, size)
 }
 
-// Reduce performs a parallel reduction
+// Reduce performs a parallel reduction operation on the data.
+// It combines all elements using the provided binary operation.
+//
+// Parameters:
+//   - data: Input data array
+//   - size: Number of elements
+//   - op: Binary operation (e.g., addition, maximum)
+//
+// Returns the final reduced value.
+//
+// Example:
+//   d_data, _ := guda.Malloc(1024 * 4)
+//   sum, _ := guda.Reduce(d_data, 1024, func(a, b float32) float32 {
+//       return a + b // Sum all elements
+//   })
 func Reduce(data DevicePtr, size int, op func(a, b float32) float32) (float32, error) {
 	// This would integrate with menthar's SIMD reduction kernels
 	// For now, simple implementation

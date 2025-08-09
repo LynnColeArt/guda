@@ -54,6 +54,9 @@ cpu_test_vectors/
 *.temp
 *.log
 
+# Benchmark logs
+benchmark_logs/
+
 # Build artifacts
 dist/
 build/

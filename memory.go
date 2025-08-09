@@ -7,18 +7,22 @@ import (
 	"unsafe"
 )
 
-// MemcpyKind specifies the direction of memory transfer
+// MemcpyKind specifies the direction of memory transfer.
+// In GUDA's unified memory model, these are provided for CUDA compatibility
+// but may be treated identically since all memory is CPU-accessible.
 type MemcpyKind int
 
 const (
-	MemcpyHostToHost MemcpyKind = iota
-	MemcpyHostToDevice
-	MemcpyDeviceToHost
-	MemcpyDeviceToDevice
-	MemcpyDefault
+	MemcpyHostToHost     MemcpyKind = iota // Host to host transfer
+	MemcpyHostToDevice                      // Host to device transfer
+	MemcpyDeviceToHost                      // Device to host transfer
+	MemcpyDeviceToDevice                    // Device to device transfer
+	MemcpyDefault                           // Default transfer (infer direction)
 )
 
-// MemoryPool manages device memory allocation
+// MemoryPool manages device memory allocation with efficient reuse.
+// It maintains a free list of previously allocated blocks to reduce
+// allocation overhead and memory fragmentation.
 type MemoryPool struct {
 	mu         sync.Mutex
 	allocated  map[uintptr]*allocation
@@ -33,24 +37,47 @@ type allocation struct {
 	used bool
 }
 
-// NewMemoryPool creates a new memory pool
+// NewMemoryPool creates a new memory pool for efficient memory management.
+// The pool tracks allocations and provides statistics on memory usage.
 func NewMemoryPool() *MemoryPool {
 	return &MemoryPool{
 		allocated: make(map[uintptr]*allocation),
 	}
 }
 
-// Malloc allocates device memory
+// Malloc allocates device memory of the specified size in bytes.
+// The memory is aligned for optimal SIMD performance.
+//
+// Example:
+//   ptr, err := ctx.Malloc(1024 * 4) // Allocate 1024 float32s
+//   if err != nil {
+//       return err
+//   }
+//   defer ctx.Free(ptr)
 func (ctx *Context) Malloc(size int) (DevicePtr, error) {
 	return ctx.memory.Allocate(size)
 }
 
-// Free releases device memory
+// Free releases device memory allocated by Malloc.
+// It is safe to call Free with a zero DevicePtr.
+// The memory may be retained in the pool for future allocations.
 func (ctx *Context) Free(ptr DevicePtr) error {
 	return ctx.memory.Free(ptr)
 }
 
-// Memcpy copies memory between host and device
+// Memcpy copies memory between host and device.
+// Supports various combinations of DevicePtr and Go slices.
+//
+// Parameters:
+//   - dst: Destination (DevicePtr or Go slice)
+//   - src: Source (DevicePtr or Go slice)
+//   - size: Number of bytes to copy
+//   - kind: Transfer direction (for CUDA compatibility)
+//
+// Example:
+//   h_data := make([]float32, 1024)
+//   d_data, _ := ctx.Malloc(1024 * 4)
+//   ctx.Memcpy(d_data, h_data, 1024*4, guda.MemcpyHostToDevice)
 func (ctx *Context) Memcpy(dst, src interface{}, size int, kind MemcpyKind) error {
 	// On CPU, all memory transfers are just memcpy
 	// We keep the API for compatibility

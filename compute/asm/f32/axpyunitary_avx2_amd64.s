@@ -58,6 +58,10 @@ no_trim:
 	JZ   tail16_start  // if LEN == 0 { goto tail16_start }
 
 loop:  // Main loop: process 32 floats per iteration using AVX2
+	// Prefetch next iteration's data (8 cache lines ahead)
+	PREFETCHT0 512(X_PTR)(IDX*4)      // Prefetch x[i+128:i+144]
+	PREFETCHT0 512(Y_PTR)(IDX*4)      // Prefetch y[i+128:i+144]
+	
 	// Load x[i:i+32] into 4 YMM registers (8 floats each)
 	VMOVUPS (X_PTR)(IDX*4), Y2        // Y2 = x[i:i+8]
 	VMOVUPS 32(X_PTR)(IDX*4), Y3      // Y3 = x[i+8:i+16]

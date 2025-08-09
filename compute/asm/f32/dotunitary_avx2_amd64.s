@@ -47,6 +47,10 @@ TEXT ·dotUnitaryAVX2(SB), NOSPLIT, $0
 	JZ      tail_start
 	
 loop:  // Main loop: process 32 floats per iteration using 4 accumulators
+	// Prefetch next iteration's data (8 cache lines ahead)
+	PREFETCHT0 512(X_PTR)(IDX*4)      // Prefetch x[i+128:i+144]
+	PREFETCHT0 512(Y_PTR)(IDX*4)      // Prefetch y[i+128:i+144]
+	
 	// Load x and y values
 	VMOVUPS (X_PTR)(IDX*4), Y4
 	VMOVUPS 32(X_PTR)(IDX*4), Y5

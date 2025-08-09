@@ -1,4 +1,24 @@
-// Package guda provides a CUDA-compatible API for CPU execution
+// Package guda provides a CUDA-compatible API for CPU execution.
+// It enables running CUDA applications on CPU-only infrastructure through
+// aggressive SIMD optimization and native CPU implementations.
+//
+// Example usage:
+//
+//	ctx := guda.NewContext()
+//	defer ctx.Destroy()
+//	
+//	// Allocate device memory
+//	d_a, _ := ctx.Malloc(n * 4) // n float32s
+//	d_b, _ := ctx.Malloc(n * 4)
+//	
+//	// Copy data to device
+//	ctx.Memcpy(d_a, h_a, n*4, guda.MemcpyHostToDevice)
+//	ctx.Memcpy(d_b, h_b, n*4, guda.MemcpyHostToDevice)
+//	
+//	// Launch kernel
+//	grid := guda.Dim3{X: (n + 255) / 256}
+//	block := guda.Dim3{X: 256}
+//	ctx.LaunchKernel(myKernel, grid, block, args...)
 package guda
 
 import (
@@ -9,16 +29,20 @@ import (
 	"unsafe"
 )
 
-// Device represents a compute device (CPU in our case)
+// Device represents a compute device. In GUDA, this is the CPU with its
+// cores and available memory. Each device has a unique ID and capabilities.
 type Device struct {
-	ID         int
-	Name       string
-	TotalMem   uint64
-	NumCores   int
-	MaxThreads int
+	ID         int    // Unique device identifier
+	Name       string // Human-readable device name
+	TotalMem   uint64 // Total available memory in bytes
+	NumCores   int    // Number of CPU cores
+	MaxThreads int    // Maximum concurrent threads
 }
 
-// Context represents an execution context
+// Context represents an execution context for GUDA operations.
+// It manages device resources, memory allocation, and stream execution.
+// A Context must be created before any GUDA operations and should be
+// destroyed when no longer needed.
 type Context struct {
 	device     *Device
 	streams    map[int]*Stream
@@ -27,7 +51,9 @@ type Context struct {
 	defaultStream *Stream
 }
 
-// Stream represents an execution stream
+// Stream represents an ordered sequence of operations that execute
+// asynchronously. Operations within a stream execute in order, but
+// operations in different streams may execute concurrently.
 type Stream struct {
 	id       int
 	tasks    chan func()
@@ -35,28 +61,37 @@ type Stream struct {
 	wg       sync.WaitGroup
 }
 
-// Dim3 represents 3D dimensions for grid/block
+// Dim3 represents 3D dimensions for grid and block configurations.
+// This matches CUDA's dim3 structure for kernel launch parameters.
 type Dim3 struct {
 	X, Y, Z int
 }
 
-// ThreadID identifies a thread within the execution hierarchy
+// ThreadID identifies a thread's position within the execution hierarchy.
+// It provides the same indexing semantics as CUDA's built-in variables:
+// blockIdx, threadIdx, blockDim, and gridDim.
 type ThreadID struct {
-	BlockIdx  Dim3
-	ThreadIdx Dim3
-	BlockDim  Dim3
-	GridDim   Dim3
+	BlockIdx  Dim3 // Block index within the grid
+	ThreadIdx Dim3 // Thread index within the block
+	BlockDim  Dim3 // Dimensions of the block
+	GridDim   Dim3 // Dimensions of the grid
 }
 
-// Kernel represents a compute kernel
+// Kernel represents a compute kernel that can be executed in parallel.
+// Implementations should be thread-safe as Execute will be called
+// concurrently from multiple threads.
 type Kernel interface {
 	Execute(tid ThreadID, args ...interface{})
 }
 
-// KernelFunc is a function that can be launched as a kernel
+// KernelFunc is a function that can be launched as a kernel.
+// It receives thread identification and variadic arguments.
 type KernelFunc func(tid ThreadID, args ...interface{})
 
-// DevicePtr represents a device memory pointer
+// DevicePtr represents a pointer to device memory. It provides type-safe
+// access to device memory and supports pointer arithmetic through the
+// Offset method. Use the type conversion methods (Float32, Float64, etc.)
+// to access the underlying data with proper type safety.
 type DevicePtr struct {
 	ptr    unsafe.Pointer
 	size   int
