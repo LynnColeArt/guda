@@ -70,6 +70,8 @@ const (
 	FFUTypeVideoEncode      // Hardware video encoder
 	FFUTypeVideoDecode      // Hardware video decoder
 	FFUTypeNPU              // Neural Processing Unit
+	FFUTypeAVX2             // AVX2 SIMD
+	FFUTypePCLMUL           // Polynomial multiplication
 )
 
 func (t FFUType) String() string {
@@ -92,6 +94,10 @@ func (t FFUType) String() string {
 		return "VideoDecode"
 	case FFUTypeNPU:
 		return "NPU"
+	case FFUTypeAVX2:
+		return "AVX2"
+	case FFUTypePCLMUL:
+		return "PCLMUL"
 	default:
 		return "Unknown"
 	}
@@ -184,4 +190,67 @@ func (r *Registry) FindBest(workload Workload) (FFU, *Cost) {
 	}
 	
 	return bestFFU, bestCost
+}
+
+// PCLMULOperation represents different polynomial multiplication operations
+type PCLMULOperation int
+
+const (
+	PCLMULCRC32 PCLMULOperation = iota
+	PCLMULGaloisMul
+	PCLMULReedSolomon
+)
+
+// RSConfig holds Reed-Solomon encoding parameters
+type RSConfig struct {
+	DataShards   int
+	ParityShards int
+}
+
+// PCLMULWorkload represents polynomial multiplication workloads
+type PCLMULWorkload struct {
+	Operation  PCLMULOperation
+	Data       []byte    // Input data
+	Output     []byte    // Output buffer
+	Polynomial uint64    // For CRC32
+	Result     uint64    // For CRC32 result
+	RSConfig   *RSConfig // For Reed-Solomon
+}
+
+// Type returns the workload type
+func (w *PCLMULWorkload) Type() string {
+	switch w.Operation {
+	case PCLMULCRC32:
+		return "pclmul_crc32"
+	case PCLMULGaloisMul:
+		return "pclmul_galois"
+	case PCLMULReedSolomon:
+		return "pclmul_reed_solomon"
+	default:
+		return "pclmul_unknown"
+	}
+}
+
+// Size returns the workload size in bytes
+func (w *PCLMULWorkload) Size() int64 {
+	return int64(len(w.Data))
+}
+
+// Validate checks if the workload is valid
+func (w *PCLMULWorkload) Validate() error {
+	if len(w.Data) == 0 {
+		return fmt.Errorf("empty data")
+	}
+	
+	switch w.Operation {
+	case PCLMULReedSolomon:
+		if w.RSConfig == nil {
+			return fmt.Errorf("Reed-Solomon config required")
+		}
+		if w.RSConfig.DataShards < 1 || w.RSConfig.ParityShards < 1 {
+			return fmt.Errorf("invalid Reed-Solomon parameters")
+		}
+	}
+	
+	return nil
 }

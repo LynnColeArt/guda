@@ -3,6 +3,8 @@
 
 package vnni
 
+import "unsafe"
+
 /*
 #cgo CFLAGS: -mavx512f -mavx512bw -mavx512vnni -O3 -march=native -fopenmp
 #cgo LDFLAGS: -lgomp
