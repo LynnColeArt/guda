@@ -311,6 +311,11 @@ func (d DevicePtr) Offset(bytes int) DevicePtr {
 	}
 }
 
+// Size returns the size in bytes of the memory region
+func (d DevicePtr) Size() int {
+	return d.size
+}
+
 // getSystemMemory returns total system memory in bytes
 func getSystemMemory() uint64 {
 	// This is a simplified version
