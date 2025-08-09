@@ -1,0 +1,4 @@
+go: downloading go1.24.6 (linux/amd64)
+# .
+no Go files in /media/lynn/big_drive/workspaces/Guda/scripts
+FAIL	. [setup failed]
