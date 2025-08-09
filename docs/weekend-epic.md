@@ -189,13 +189,20 @@ This isn't just optimization—it's a new compute paradigm that could redefine i
   - Technical roadmap through Q4 2025
   - Hardware co-evolution opportunities
 
-### Remaining High-Priority Tasks
+### Remaining High-Priority Tasks (Weekend Scope)
 1. **Implement size-class based memory pool** ⭐⭐⭐
 2. **Add fuzz tests** ⭐⭐⭐
 3. **Add performance regression tests** ⭐⭐⭐
 4. **Replace interface{} with generics** ⭐⭐⭐⭐
-5. **AMX support for int8 operations** ⭐⭐⭐⭐
-6. **GPU integration (ROCm/DirectML)** ⭐⭐⭐⭐⭐
+5. ✅ **AMX support for int8 operations** ⭐⭐⭐⭐
+   - Complete FFU implementation with reference kernel
+   - Full test coverage and benchmarks
+   - Ready for assembly optimization
+
+### Future Work (Post-Weekend)
+- **GPU integration (ROCm/DirectML)** ⭐⭐⭐⭐⭐
+- **Video encode/decode ASIC integration** ⭐⭐⭐⭐
+- **Full heterogeneous scheduler** ⭐⭐⭐⭐⭐
 
 ## Implementation Notes
 
