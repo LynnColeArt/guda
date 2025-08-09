@@ -2,6 +2,19 @@
 
 **[📚 Read the Full Manual](docs/manual/)** | **[🚀 Quick Start Guide](docs/manual/02-installation.md)** | **[🏗️ Architecture Overview](docs/manual/04-architecture.md)**
 
+## Performance Highlights
+
+GUDA achieves **150+ GFLOPS** sustained performance on modern CPUs through aggressive optimization:
+
+| Operation | Performance | vs. Practical Peak | Cache Impact |
+|-----------|-------------|-------------------|--------------|
+| GEMM 1024×1024 | 154 GFLOPS | 154% | <1% drop cold |
+| AXPY 16K | 40 GFLOPS | Memory limited | 0% drop cold |
+| DOT 1K | 68 GFLOPS | Memory limited | 0% drop cold |
+| Memory BW | 240+ GB/s | 90% of DDR5 | - |
+
+**[📊 Full Benchmark Results](BENCHMARK_RESULTS.md)** | **[🧊 Cold Cache Analysis](COLD_CACHE_ANALYSIS.md)** | **[📈 Benchmarking Guide](docs/BENCHMARKING_GUIDE.md)**
+
 ## Abstract
 
 We present GUDA (Go Unified Device Architecture), a novel implementation of CUDA-compatible APIs designed for CPU execution. Rather than simulating GPU hardware, GUDA provides a unified memory architecture and maps CUDA operations to highly optimized native CPU implementations. This library enables seamless deployment of CUDA applications on CPU-only infrastructure through aggressive SIMD optimization, native BLAS integration, and elimination of host-device memory transfers. Our implementation demonstrates that CPU-native approaches can provide a practical alternative for running CUDA applications where GPU hardware is unavailable.
