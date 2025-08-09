@@ -281,6 +281,8 @@ These results demonstrate:
 
 See [BENCHMARK_RESULTS.md](BENCHMARK_RESULTS.md) for detailed performance analysis including cold cache results and performance counter validation.
 
+For guidance on running and interpreting benchmarks, see [Benchmarking Guide](docs/BENCHMARKING_GUIDE.md).
+
 ### 4.3 Convolution Implementation
 
 Our convolution implementation uses the im2col + GEMM approach:
