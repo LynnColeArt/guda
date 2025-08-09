@@ -27,8 +27,12 @@ func BenchmarkGEMMWithPerfCounters(b *testing.B) {
 			defer Free(dc)
 			
 			// Initialize with test data
-			InitTestData(da.Float32(), 1.0)
-			InitTestData(db.Float32(), 1.0)
+			for i := range da.Float32() {
+				da.Float32()[i] = 1.0
+			}
+			for i := range db.Float32() {
+				db.Float32()[i] = 1.0
+			}
 			
 			// Warm up
 			GEMM(false, false, size.m, size.n, size.k, 1.0, da, size.k, db, size.n, 0.0, dc, size.n)
@@ -75,7 +79,9 @@ func BenchmarkReductionWithPerfCounters(b *testing.B) {
 			defer Free(d_data)
 			
 			// Initialize
-			InitTestData(d_data.Float32(), 1.0)
+			for i := range d_data.Float32() {
+				d_data.Float32()[i] = 1.0
+			}
 			
 			// Warm up
 			Reduce(d_data, n, func(a, b float32) float32 { return a + b })
@@ -147,8 +153,8 @@ func BenchmarkKernelLaunchWithCounters(b *testing.B) {
 	}
 }
 
-// Helper to demonstrate perf counter analysis
-func ExamplePerfCounterAnalysis() {
+// DemonstrateRooflineAnalysis shows roofline model analysis
+func DemonstrateRooflineAnalysis() {
 	fmt.Println("Performance Counter Analysis Example")
 	fmt.Println("===================================")
 	
@@ -172,7 +178,7 @@ func ExamplePerfCounterAnalysis() {
 	// Roofline analysis
 	computeBound := peakGFLOPS
 	memoryBound := peakBandwidth * arithmeticIntensity
-	achievable := min(computeBound, memoryBound)
+	achievable := minFloat64(computeBound, memoryBound)
 	
 	fmt.Printf("\nRoofline Analysis:\n")
 	fmt.Printf("Peak GFLOPS: %.0f\n", peakGFLOPS)
@@ -192,8 +198,8 @@ func ExamplePerfCounterAnalysis() {
 	}
 }
 
-// min helper
-func min(a, b float64) float64 {
+// minFloat64 helper
+func minFloat64(a, b float64) float64 {
 	if a < b {
 		return a
 	}

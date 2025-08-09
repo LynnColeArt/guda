@@ -48,11 +48,12 @@ func BenchmarkAXPY(b *testing.B) {
 			
 			b.SetBytes(int64(3 * N * 4)) // Read X, Read Y, Write Y
 			
-			// Use performance counter integration
-			IntegratePerfCounters(b, fmt.Sprintf("AXPY_%d", N), func() {
+			// Run benchmark
+			b.ResetTimer()
+			for i := 0; i < b.N; i++ {
 				AXPY(alpha, d_X, d_Y, N)
 				Synchronize()
-			})
+			}
 			
 			// Report GFLOPS per operation (correct calculation)
 			flops := float64(2 * N) // multiply + add per operation
@@ -108,16 +109,21 @@ func BenchmarkGEMM(b *testing.B) {
 			defer Free(d_C)
 			
 			// Initialize with test data for consistent results
-			InitTestData(d_A.Float32(), 1.0)
-			InitTestData(d_B.Float32(), 1.0)
+			for i := range d_A.Float32() {
+				d_A.Float32()[i] = 1.0
+			}
+			for i := range d_B.Float32() {
+				d_B.Float32()[i] = 1.0
+			}
 			
 			b.SetBytes(int64(3 * N * N * 4)) // Simplified
 			
-			// Use performance counter integration
-			IntegratePerfCounters(b, fmt.Sprintf("GEMM_%dx%dx%d", N, N, N), func() {
+			// Run benchmark
+			b.ResetTimer()
+			for i := 0; i < b.N; i++ {
 				GEMM(false, false, N, N, N, 1.0, d_A, N, d_B, N, 0.0, d_C, N)
 				Synchronize()
-			})
+			}
 			
 			// Report GFLOPS per operation (correct calculation)
 			flops := float64(2 * N * N * N) // multiply-add per GEMM
@@ -142,7 +148,6 @@ func BenchmarkGEMM(b *testing.B) {
 			// Roofline analysis
 			peakBandwidth := 50.0 // GB/s typical DDR4
 			memoryBound := peakBandwidth * arithmeticIntensity
-			achievable := min(gflopsPerOp, memoryBound)
 			if memoryBound < gflopsPerOp {
 				b.ReportMetric(1.0, "memory_bound")
 			} else {
@@ -245,7 +250,7 @@ func BenchmarkParallelScaling(b *testing.B) {
 		}
 		
 		b.Run(fmt.Sprintf("GridSize_%d", gridSize), func(b *testing.B) {
-			actualWork := min(gridSize*blockSize, N)
+			actualWork := minInt(gridSize*blockSize, N)
 			b.SetBytes(int64(3 * actualWork * 4))
 			
 			kernel := KernelFunc(func(tid ThreadID, args ...interface{}) {
@@ -285,20 +290,10 @@ func formatBytes(bytes int) string {
 	return fmt.Sprintf("%d%cB", bytes/int(div), "KMGTPE"[exp])
 }
 
-// min returns the minimum of two values
-func min(a, b interface{}) interface{} {
-	switch a := a.(type) {
-	case int:
-		if b := b.(int); a < b {
-			return a
-		}
-		return b
-	case float64:
-		if b := b.(float64); a < b {
-			return a
-		}
-		return b
-	default:
-		panic("unsupported type")
+// minInt returns the minimum of two ints
+func minInt(a, b int) int {
+	if a < b {
+		return a
 	}
+	return b
 }

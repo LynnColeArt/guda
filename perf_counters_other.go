@@ -32,6 +32,7 @@ func MeasureWithHardwareCounters(name string, fn func() error) (*PerfCounters, e
 }
 
 // IntegratePerfCounters is simplified on non-Linux platforms
-func IntegratePerfCounters(b *testing.B, name string, fn func()) {
-	BenchmarkWithCounters(b, name, fn)
+func IntegratePerfCounters(b interface{}, name string, fn func()) {
+	// Just run the function on non-Linux platforms
+	fn()
 }

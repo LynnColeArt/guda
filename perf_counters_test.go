@@ -114,7 +114,7 @@ func TestRooflineAnalysis(t *testing.T) {
 			intensity := float64(tc.flops) / float64(tc.bytes)
 			
 			// Check arithmetic intensity calculation
-			if abs(intensity-tc.expectedIntensity) > 0.1 {
+			if absFloat64(intensity-tc.expectedIntensity) > 0.1 {
 				t.Errorf("Expected intensity %.2f, got %.2f", tc.expectedIntensity, intensity)
 			}
 			
@@ -173,8 +173,8 @@ func BenchmarkPerfCounterOverhead(b *testing.B) {
 	})
 }
 
-// Example of using performance counters in a real scenario
-func ExamplePerfCounterAnalysis() {
+// DemonstratePerfCounterAnalysis shows performance counter usage
+func DemonstratePerfCounterAnalysis() {
 	fmt.Println("Performance Counter Analysis Example")
 	fmt.Println("===================================")
 	
@@ -190,8 +190,12 @@ func ExamplePerfCounterAnalysis() {
 	defer Free(dc)
 	
 	// Initialize
-	InitTestData(da.Float32(), 1.0)
-	InitTestData(db.Float32(), 1.0)
+	for i := range da.Float32() {
+		da.Float32()[i] = 1.0
+	}
+	for i := range db.Float32() {
+		db.Float32()[i] = 1.0
+	}
 	
 	// Measure with hardware counters
 	counters, err := MeasureWithHardwareCounters("GEMM", func() error {
@@ -260,7 +264,7 @@ func containsHelper(s, substr string) bool {
 	return false
 }
 
-func abs(x float64) float64 {
+func absFloat64(x float64) float64 {
 	if x < 0 {
 		return -x
 	}
